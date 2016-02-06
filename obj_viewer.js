@@ -84,7 +84,7 @@ function init() {
     var farPlane = 8000;
 
     camera = new THREE.PerspectiveCamera( verticalFOV, aspectRatio, nearPlane, farPlane );
-    camera.position.set( 0, 0, 100 );
+    camera.position.set( 0, 0, 10 );
     scene.add( camera );
 
 
@@ -112,7 +112,7 @@ function init() {
     // Adds debug axes into scene centered at (0,0,0).
     // Red is x, green is y, and blue is z.
     // Solid line positive, dashed line is negative.
-    var axes = buildAxes( 3000 );
+    var axes = buildAxes( 100 );
     scene.add( axes );
 
 
@@ -232,7 +232,7 @@ function create3DObject( obj_file, obj_name, obj_material ) {
 
                 // Convert back to a bufferGeometry for efficiency (???)
                 mesh.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
-                
+
             } // end if
 
         }); // end object.traverse
