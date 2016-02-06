@@ -25,11 +25,7 @@ $('#i_file').change( function(event) {
             console.log( "File loaded successfully." +
                               "\nName: " + file.name +
                               "\nSize: " + file.size + " bytes" );
-            var lines = contents.split('\n');
-            console.log(lines.length);
-            console.log(lines);
-            var linesUnique = Array.from(new Set(lines));
-            console.log(linesUnique.length);
+            var lines = contents.split(/[\r\n]/);
             lines.map( function( line ) {
                 var firstChar = line.charAt(0);
                 var secondChar = line.charAt(1);
@@ -62,7 +58,6 @@ $('#i_file').change( function(event) {
         side: THREE.DoubleSide // important.
     })
     );
-
     scene.add( object );
 
     render();
@@ -216,16 +211,28 @@ function create3DObject( obj_file, obj_name, obj_material ) {
                 // Assign the passed-in material to the mesh.
                 mesh.material = obj_material;
 
-                /* OBJLoader uses a BufferGeometry for the 3D Object by default.
+                // OBJLoader uses a BufferGeometry for the 3D Object by default.
                 // It stores all of the geometry's data within buffers, to reduce
                 // the cost of passing all of the data directly to the GPU.
-                // We need to unpack it to a Geometry first. */
+                // We need to unpack it to a Geometry first.
                 var geometry = new THREE.Geometry().fromBufferGeometry( mesh.geometry );
-                geometry.computeFaceNormals();
-                geometry.mergeVertices();        // These two lines aren't necessary
-                geometry.computeVertexNormals(); // unless we want smooth shading.
-                mesh.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
 
+                // Normalize geometry by scaling it down by it's bounding sphere's radius.
+                geometry.computeBoundingSphere();
+                var r = geometry.boundingSphere.radius;
+                mesh.scale.set( 1/r, 1/r, 1/r );
+
+                // Compute both normals so we can use both flat and smooth shading.
+                geometry.computeFaceNormals();
+                geometry.mergeVertices();        // Merge just in case.
+                geometry.computeVertexNormals();
+
+                // Center geometry at origin.
+                THREE.GeometryUtils.center( geometry );
+
+                // Convert back to a bufferGeometry for efficiency (???)
+                mesh.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
+                
             } // end if
 
         }); // end object.traverse
