@@ -7,6 +7,8 @@
 
 init();
 lights();
+render();
+
 $('#i_file').change( function(event) {
 
     var file = event.target.files[0];
@@ -26,7 +28,7 @@ $('#i_file').change( function(event) {
                               "\nName: " + file.name +
                               "\nSize: " + file.size + " bytes" );
             var lines = contents.split(/[\r\n]/);
-            lines.map( function( line ) {
+            lines.map( function( line ) {j
                 var firstChar = line.charAt(0);
                 var secondChar = line.charAt(1);
                 if ( firstChar === 'v' && secondChar === ' ') numVertices++;
@@ -37,30 +39,31 @@ $('#i_file').change( function(event) {
             $('#faces').html("Faces: " + numFaces);
             $('#genus').html("Genus: " + (1 - numVertices/2 + numFaces/4) );
         }
-        console.log(fileReader.readAsText( file ));
+        fileReader.readAsText( file );
     }
     else {
         alert( "Failed to load file!" );
     }
 
 
-    // If there is an object in the scene, remove it.
+    //If there is an object in the scene, remove it.
     if (typeof object !== 'undefined') {
         scene.remove( object );
     }
 
-    var tmppath = URL.createObjectURL( file );
 
-    object = create3DObject( tmppath, "sculpture", new THREE.MeshPhongMaterial({
+    var tmppath = URL.createObjectURL( file );
+    var fileName = file.name.substr(0, file.name.length - 4);
+    object = create3DObject( tmppath, fileName, new THREE.MeshPhongMaterial({
         color: 0x515a6e,
         emissive: 0x000000,
         shading: THREE.FlatShading,
         side: THREE.DoubleSide // important.
     })
     );
+    object.deletable = true;
     scene.add( object );
 
-    render();
 });
 
 // The scene is where everything is placed.
@@ -115,7 +118,6 @@ function init() {
     var axes = buildAxes( 100 );
     scene.add( axes );
 
-
     // Create the gui for the slider controllers.
     createGUI();
 }
@@ -159,7 +161,8 @@ function createGUI() {
     rotationFolder.add( guiControls, 'rotationZ', 0, 2 * Math.PI ).name( "rotate on z" ).listen();
         // Set the sliders to start at 0. This is related to the above bug issue.
         guiControls.rotationX = guiControls.rotationY = guiControls.rotationZ = 0;
-    rotationFolder.add( {
+    rotationFolder.add(
+    {
         resetRotation: function() {
             guiControls.rotationX = 0;
             guiControls.rotationY = 0;
@@ -175,6 +178,19 @@ function createGUI() {
     	"THREE.SmoothShading" : THREE.SmoothShading
     }
     materialFolder.add( guiControls, 'shading', shadingOptions ).onChange( updateShading() );
+
+
+    gui.add(
+    {
+        clearScene: function() {
+            var objs = scene.children;
+            for ( var i = objs.length - 1; i >= 0; i-- ) {
+                obj = objs[ i ];
+                if ( obj.deletable === true )
+                    scene.remove( obj );
+            }
+        }
+    }, 'clearScene').name( "clear scene" );
 
     gui.close();
 }
@@ -226,9 +242,10 @@ function create3DObject( obj_file, obj_name, obj_material ) {
                 geometry.computeFaceNormals();
                 geometry.mergeVertices();        // Merge just in case.
                 geometry.computeVertexNormals();
+                console.log(1 - geometry.vertices.length/2 + geometry.faces.length/4);
 
                 // Center geometry at origin.
-                THREE.GeometryUtils.center( geometry );
+                geometry.center();
 
                 // Convert back to a bufferGeometry for efficiency (???)
                 mesh.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
@@ -259,15 +276,21 @@ function populateScene() {
 
 /* This recursively animates the scene using the requestAnimationFrame() function. */
 function render() {
-    window.requestAnimationFrame( render );
 
-    object.rotation.set( guiControls.rotationX, 0, 0 );
-    object.rotation.y = guiControls.rotationY;
-    object.rotation.z = guiControls.rotationZ;
+    // Limit rendering to 30 fps, equivalent to 1000 / 30 = 33.33 ms per frame.
+    setTimeout( function() {
+        requestAnimationFrame( render );
+    }, 1000 / 30 ); // frame count goes to the denominator.
 
-    object.scale.x = guiControls.scaleX;
-    object.scale.y = guiControls.scaleY;
-    object.scale.z = guiControls.scaleZ;
+    if ( typeof object !== 'undefined' ) {
+        object.rotation.set( guiControls.rotationX, 0, 0 );
+        object.rotation.y = guiControls.rotationY;
+        object.rotation.z = guiControls.rotationZ;
+
+        object.scale.x = guiControls.scaleX;
+        object.scale.y = guiControls.scaleY;
+        object.scale.z = guiControls.scaleZ;
+    }
 
     renderer.render( scene, camera );
     cameraControls.update();
