@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Starter Template for Bootstrap</title>
+
+    <!-- JQuery UI -->
+    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.4/themes/pepper-grinder/jquery-ui.css">
+
+    <!-- Custom styles for this template -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body id="graphicsContainer">
+
+    <div class="sidebar">
+        <input type="file" id="i_file" value="">
+        <ul>
+            <li id="vertices"></li>
+            <li id="edges"></li>
+            <li id="faces"></li>
+            <li id="genus"></li>
+        <ul>
+    </div>
+
+    <!-- jQuery first, then Bootstrap JS. -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="https://code.jquery.com/ui/1.12.0-beta.1/jquery-ui.min.js"></script>
+
+    <!-- Core Three.js library -->
+    <script src="../js/three.js"></script>
+    <script src="../js/OBJLoader.js"></script>     <!-- So we can load .obj files -->
+    <script src="../js/OrbitControls.js"></script> <!-- So we can control the camera -->
+    <script src="../js/xyzAxes.js"></script>       <!-- To display debug axes -->
+    <script src="../js/dat.gui.min.js"></script>   <!-- To include fancy sliders -->
+    <!-- Some CSS to make the gui a little bit transparent -->
+    <style>
+        .dg {
+            color: #fff;
+            font-size: 12px;
+            text-shadow: none !important;
+        }
+
+        .dg li:not(.folder) {
+            /*background: rgba(0, 0, 0, 1);*/
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+
+    <!-- This code is the actual assignment. -->
+
+    <script src="updates.js"></script>
+    <script src="obj_viewer.js"></script>
+</body>
+</html>
