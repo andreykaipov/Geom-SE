@@ -28,6 +28,52 @@ animate();
 
 var scene, camera, loadedObject, renderer, cameraControls, guiControls;
 
+
+$('#i_file').change( function(event) {
+
+    var file = event.target.files[0];
+
+    // Loads our file so we can read it.
+    // No longer necessary, but maybe it could be used to triangulate the obj file.
+    if ( file ) {
+        var fileReader = new FileReader();
+        fileReader.onload = function( event ) {
+            var contents = event.target.result;
+            console.log( "File loaded successfully." +
+                              "\nName: " + file.name +
+                              "\nSize: " + file.size + " bytes" );
+            var lines = contents.split(/[\r\n]/);
+        }
+        fileReader.readAsText( file );
+    }
+    else {
+        alert( "Failed to load file!" );
+    }
+
+
+    //If there is already an object in the scene, remove it.
+    if (typeof loadedObject !== 'undefined') {
+        scene.remove( loadedObject );
+    }
+
+
+    var tmppath = URL.createObjectURL( file );
+    var fileName = file.name.substr(0, file.name.length - 4);
+
+    loadedObject = create3DObject( tmppath, fileName, new THREE.MeshPhongMaterial({
+        color: pickedColor,
+        emissive: 0x000000,
+        shading: pickedShading,
+        side: THREE.DoubleSide // important.
+    })
+    );
+    loadedObject.deletable = true; // see 'clearObjects' button in the gui_sliders.js fileName
+
+    scene.add( loadedObject );
+
+});
+
+
 /* Initializes our scene, camera, renderer, and controls. */
 function init() {
     // Scene.
@@ -85,51 +131,6 @@ function lights() {
     directionalLight.position.set( 0, 1, 1 );
     scene.add( directionalLight );
 }
-
-
-$('#i_file').change( function(event) {
-
-    var file = event.target.files[0];
-
-    // Loads our file so we can read it.
-    // No longer necessary, but maybe it could be used to triangulate the obj file.
-    if ( file ) {
-        var fileReader = new FileReader();
-        fileReader.onload = function( event ) {
-            var contents = event.target.result;
-            console.log( "File loaded successfully." +
-                              "\nName: " + file.name +
-                              "\nSize: " + file.size + " bytes" );
-            var lines = contents.split(/[\r\n]/);
-        }
-        fileReader.readAsText( file );
-    }
-    else {
-        alert( "Failed to load file!" );
-    }
-
-
-    //If there is already an object in the scene, remove it.
-    if (typeof loadedObject !== 'undefined') {
-        scene.remove( loadedObject );
-    }
-
-
-    var tmppath = URL.createObjectURL( file );
-    var fileName = file.name.substr(0, file.name.length - 4);
-
-    loadedObject = create3DObject( tmppath, fileName, new THREE.MeshPhongMaterial({
-        color: 0x515a6e,
-        emissive: 0x000000,
-        shading: THREE.FlatShading,
-        side: THREE.DoubleSide // important.
-    })
-    );
-    loadedObject.deletable = true; // see 'clearObjects' button in the gui_sliders.js fileName
-
-    scene.add( loadedObject );
-
-});
 
 
 /* Loads our 3D Object and returns it. */

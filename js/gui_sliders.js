@@ -1,3 +1,6 @@
+var pickedColor = 0x515a6e;
+var pickedShading = THREE.FlatShading;
+
 function createGUI() {
 
     var gui = new dat.GUI();
@@ -14,8 +17,8 @@ function createGUI() {
         this.scaleY = 1;
         this.scaleZ = 1;
 
-        this.baseColor = 0x515a6e;
-        this.shading = null; // just a place-holder ...
+        this.baseColor = pickedColor;
+        this.shading = pickedShading;
     };
 
 
@@ -54,8 +57,8 @@ function createGUI() {
     var materialFolder = gui.addFolder( "Material" );
     materialFolder.addColor( guiControls, 'baseColor' ).onChange( updateColor() );
     var shadingOptions = {
-        "THREE.FlatShading" : THREE.FlatShading,
-    	"THREE.SmoothShading" : THREE.SmoothShading
+        "THREE.FlatShading" : THREE.FlatShading,     // constant for the integer 1
+    	"THREE.SmoothShading" : THREE.SmoothShading  // .. "" .. 2
     }
     materialFolder.add( guiControls, 'shading', shadingOptions ).onChange( updateShading() );
 
