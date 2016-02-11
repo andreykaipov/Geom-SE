@@ -31,3 +31,9 @@ function buildAxis( src, dst, colorHex, dashed ) {
 
     return axis;
 }
+
+
+function createAxes( length ) {
+    var axes = buildAxes( length );
+    scene.add( axes );
+}

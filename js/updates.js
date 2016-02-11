@@ -1,26 +1,34 @@
+// For our GUI to dynamically update the material of our loaded object,
+// we use the provided dat.GUI .onChange method (see the gui.js file).
+// Also see: http://workshop.chromeexperiments.com/examples/gui/#7--Events
+//
+// Also see the source for this.
+// http://threejs.org/docs/scenes/material-browser.html#MeshPhongMaterial.
 
-function updateColor() {
-    return function() {
-        loadedObject.traverse( function( child ) {
-            if ( child instanceof THREE.Mesh ) {
-                child.material.color.setHex( guiControls.baseColor );
 
-                pickedColor = child.material.color;
-            }
-        });
+function updateColor( color ) {
+    return function( value ) {
+        if ( typeof value === "string" ) {
+            value = value.replace('#', '0x');
+        }
+        color.setHex( value );
     }
 }
 
+// THREE.FlatShading === 1 and THREE.SmoothShading === 2;
+// This just toggles between them since there's only two buttons.
+function updateShading( material ) {
+    return function( ) {
+        material.shading = (material.shading === 1) ? 2 : 1;
+        material.needsUpdate = true;
+    }
+}
 
-function updateShading() {
-    return function() {
-        loadedObject.traverse( function( child ) {
-            if ( child instanceof THREE.Mesh ) {
-                child.material.shading = (child.material.shading === 1) ? 2 : 1;
-                child.material.needsUpdate = true;
-
-                pickedShading = child.material.shading;
-            }
-        });
+// It doesn't work if I do material.side = value, but it works right now, so ¯\_(ツ)_/¯.
+function updateSide( material ) {
+    return function( value ) {
+        if ( value == 0 ) material.side = 0;
+        if ( value == 1 ) material.side = 1;
+        if ( value == 2 ) material.side = 2;
     }
 }

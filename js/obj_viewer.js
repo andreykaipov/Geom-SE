@@ -16,7 +16,6 @@
 // - add standard geometries (cubes, spheres, etc.)
 
 init();
-createGUI();
 lights();
 animate();
 
@@ -25,57 +24,12 @@ animate();
 // The camera is what looks at the scene.
 // The renderer will display our beautifully crafted scene.
 // The controls allow you to move around the scene with the camera.
-
-var scene, camera, loadedObject, renderer, cameraControls, guiControls;
-
-
-$('#i_file').change( function(event) {
-
-    var file = event.target.files[0];
-
-    // Loads our file so we can read it.
-    // No longer necessary, but maybe it could be used to triangulate the obj file.
-    if ( file ) {
-        var fileReader = new FileReader();
-        fileReader.onload = function( event ) {
-            var contents = event.target.result;
-            console.log( "File loaded successfully." +
-                              "\nName: " + file.name +
-                              "\nSize: " + file.size + " bytes" );
-            var lines = contents.split(/[\r\n]/);
-        }
-        fileReader.readAsText( file );
-    }
-    else {
-        alert( "Failed to load file!" );
-    }
-
-
-    //If there is already an object in the scene, remove it.
-    if (typeof loadedObject !== 'undefined') {
-        scene.remove( loadedObject );
-    }
-
-
-    var tmppath = URL.createObjectURL( file );
-    var fileName = file.name.substr(0, file.name.length - 4);
-
-    loadedObject = create3DObject( tmppath, fileName, new THREE.MeshPhongMaterial({
-        color: pickedColor,
-        emissive: 0x000000,
-        shading: pickedShading,
-        side: THREE.DoubleSide // important.
-    })
-    );
-    loadedObject.deletable = true; // see 'clearObjects' button in the gui_sliders.js fileName
-
-    scene.add( loadedObject );
-
-});
-
+var scene, camera, renderer, cameraControls;
+var loadedObject, loadedObjectMesh;
 
 /* Initializes our scene, camera, renderer, and controls. */
 function init() {
+
     // Scene.
     scene = new THREE.Scene();
 
@@ -88,9 +42,8 @@ function init() {
     var farPlane = 8000;
 
     camera = new THREE.PerspectiveCamera( verticalFOV, aspectRatio, nearPlane, farPlane );
-    camera.position.set( 0, 0, 10 );
+    camera.position.set( 0, 0, 5 );
     scene.add( camera );
-
 
     // The renderer provides a place for ThreeJS to draw our scene.
     // Specifically, it provides a <canvas> element which we add to our HTML document.
@@ -99,46 +52,69 @@ function init() {
     document.body.appendChild( renderer.domElement );
     renderer.setSize( canvasWidth, canvasHeight );
 
-    // Resize canvas when window is resized.
-    window.addEventListener( 'resize', function() {
-        canvasWidth = window.innerWidth;
-        canvasHeight = window.innerHeight;
-        renderer.setSize( canvasWidth, canvasHeight );
-        camera.aspect = canvasWidth / canvasHeight;
-        camera.updateProjectionMatrix();
-    });
-
-
     // Add controls so we can pan around with the mouse and arrow-keys.
     cameraControls = new THREE.OrbitControls( camera, renderer.domElement );
 
+    // Adds debug axes centered at (0,0,0). Remember: xyz ~ rgb. Solid is positive, dashed is negative.
+    createAxes( 100 );
 
-    // Adds debug axes into scene centered at (0,0,0).
-    // Red is x, green is y, and blue is z.
-    // Solid line positive, dashed line is negative.
-    var axes = buildAxes( 100 );
-    scene.add( axes );
+    loadedObjectMaterial = new THREE.MeshPhongMaterial({
+        color: 0x5c54dc,
+        emissive: 0x000000,
+        shading: THREE.FlatShading,
+        side: THREE.DoubleSide, // important.
+        reflectivity: 1
+    });
 
+    // Client-side upload. JS does not allow full path so we create a temporary path.
+    // See http://stackoverflow.com/a/24818245/4085283.
+    document.getElementById("i_file").addEventListener("change", function(event) {
+
+        // If there is already an object in the scene, remove it.
+        if ( typeof loadedObject !== "undefined" ) {
+            scene.remove( loadedObject );
+        }
+
+        var file = event.target.files[0];
+        var tmppath = URL.createObjectURL( file );
+        var fileName = file.name.substr(0, file.name.length - 4);
+
+        loadedObject = create3DObject( tmppath, fileName, loadedObjectMaterial );
+        loadedObject.deletable = true; // see 'clearObjects' button in the gui_slders.js fileName
+
+        scene.add( loadedObject );
+
+    });
+
+    // createGUI();
 }
 
 
 /* Creates some lights and adds them to the scene. */
 function lights() {
+
     var ambientLight = new THREE.AmbientLight( 0xffffff );
     scene.add( ambientLight );
 
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
     directionalLight.position.set( 0, 1, 1 );
     scene.add( directionalLight );
+
 }
 
+
+// This container will hold our output in the following function, since OBJLoader() seems to have issues
+// returning the object it loaded. This seems like a poor trick since now our actual Object3D is nested
+// within a dummy Object3D, but it's from mrdoob himself http://stackoverflow.com/a/22977590/4085283
+// We want for this container to be global so that scaling and rotational properties can be inherited by
+// any of the objects put inside this container.
+var objContainer = new THREE.Object3D;
 
 /* Loads our 3D Object and returns it. */
 function create3DObject( obj_url, obj_name, obj_material ) {
 
-    // This container will hold our output. It seems like a poor trick since now our actual
-    // Object3D is nested within a dummy Object3D, but it's from mrdoob himself http://stackoverflow.com/a/22977590/4085283
-    var container = new THREE.Object3D();
+    // Clears our container.
+    objContainer.children.length = 0;
 
     var loader = new THREE.OBJLoader();
 
@@ -176,10 +152,10 @@ function create3DObject( obj_url, obj_name, obj_material ) {
                 // touches three half-edges, so we have 2E = 3F.
                 var numVertices = geometry.vertices.length;
                 var numFaces = geometry.faces.length;
-                $('#vertices').html("Vertices: " + numVertices);
-                $('#edges').html("Edges: " + 3/2 * numFaces);
-                $('#faces').html("Faces: " + numFaces);
-                $('#genus').html("Genus: " + (1 - numVertices/2 + numFaces/4) );
+                document.getElementById("vertices").innerHTML = "Vertices: " + numVertices;
+                document.getElementById("edges").innerHTML = "Edges: " + 3/2 * numFaces;
+                document.getElementById("faces").innerHTML = "Faces: " + numFaces;
+                document.getElementById("genus").innerHTML = "Genus: " + (1 - numVertices/2 + numFaces/4);
 
                 // Convert back to a bufferGeometry for efficiency (??)
                 mesh.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
@@ -188,11 +164,11 @@ function create3DObject( obj_url, obj_name, obj_material ) {
 
         }); // end object.traverse
 
-        container.add( object );
+        objContainer.add( object );
 
     }); // end loader
 
-    return container;
+    return objContainer;
 
 }
 
@@ -211,18 +187,17 @@ function animate() {
 /* This just renders once. */
 function render() {
 
-    // Loading is asynchronous, so we have to do qualify it before we try and change our object.
-    if ( typeof loadedObject !== 'undefined' ) {
-        loadedObject.rotation.set( guiControls.rotationX, 0, 0 );
-        loadedObject.rotation.y = guiControls.rotationY;
-        loadedObject.rotation.z = guiControls.rotationZ;
-
-        loadedObject.scale.x = guiControls.scaleX;
-        loadedObject.scale.y = guiControls.scaleY;
-        loadedObject.scale.z = guiControls.scaleZ;
-    }
-
     renderer.render( scene, camera );
     cameraControls.update();
 
 }
+
+
+// Resize canvas when window is resized.
+window.addEventListener( "resize", function() {
+    canvasWidth = window.innerWidth;
+    canvasHeight = window.innerHeight;
+    renderer.setSize( canvasWidth, canvasHeight );
+    camera.aspect = canvasWidth / canvasHeight;
+    camera.updateProjectionMatrix();
+});
