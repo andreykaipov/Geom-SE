@@ -66,27 +66,36 @@ function init() {
         reflectivity: 1
     });
 
-    // Client-side upload. JS does not allow full path so we create a temporary path.
-    // See http://stackoverflow.com/a/24818245/4085283.
+    // Client-side upload, and triangulate to temp file. JS does not allow full path so we create a temporary path.
+    // See http://stackoverflow.com/a/24818245/4085283, and http://stackoverflow.com/a/21016088/4085283.
     document.getElementById("i_file").addEventListener("change", function(event) {
 
-        // If there is already an object in the scene, remove it.
-        if ( typeof loadedObject !== "undefined" ) {
-            scene.remove( loadedObject );
+        var file = event.target.files[0];
+        var fileName = file.name.substr(0, file.name.length - 4);
+        var fileReader = new FileReader();
+
+        fileReader.onload = function( event ) {
+            var fileAsString = event.target.result;
+
+            console.log( "File was loaded successfully." +
+                         "\nName: " + file.name +
+                         "\nSize: " + file.size + " bytes" );
+
+            var triangulatedFile = new Blob( [ triangulate( fileAsString ) ], { type: "text/plain" } );
+
+            var tmppath = window.URL.createObjectURL( triangulatedFile );
+
+            loadedObject = create3DObject( tmppath, fileName, loadedObjectMaterial );
+
+            loadedObject.deletable = true; // see 'clearObjects' button in the gui_slders.js fileName
+
+            scene.add( loadedObject );
         }
 
-        var file = event.target.files[0];
-        var tmppath = URL.createObjectURL( file );
-        var fileName = file.name.substr(0, file.name.length - 4);
-
-        loadedObject = create3DObject( tmppath, fileName, loadedObjectMaterial );
-        loadedObject.deletable = true; // see 'clearObjects' button in the gui_slders.js fileName
-
-        scene.add( loadedObject );
+        fileReader.readAsText( file );
 
     });
 
-    // createGUI();
 }
 
 
@@ -112,6 +121,11 @@ var objContainer = new THREE.Object3D;
 
 /* Loads our 3D Object and returns it. */
 function create3DObject( obj_url, obj_name, obj_material ) {
+
+    // If there is already an object in the scene, remove it.
+    if ( typeof loadedObject !== "undefined" ) {
+        scene.remove( loadedObject );
+    }
 
     // Clears our container.
     objContainer.children.length = 0;

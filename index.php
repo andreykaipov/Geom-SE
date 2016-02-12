@@ -57,6 +57,7 @@
         ChromePhp::log($_SERVER);
         ChromePhp::warn('something went wrong!');
         echo "My first PHP script!";
+        print "My first PHP script!";
       ?>
 
     </div> <!-- /container -->
