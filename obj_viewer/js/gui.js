@@ -90,13 +90,13 @@ function createGuiRotation( gui ) {
     var rotationFolder = gui.addFolder( "Rotation (clockwise in radians)" );
 
     rotationFolder.add( data, 'rotationX', 0, 2 * Math.PI ).name( "rotate on x" ).listen().onChange(
-        function( value ) { objContainer.rotation.set( value, 0, 0 ); }
+        function ( value ) { objContainer.rotation.x = value; }
     );
     rotationFolder.add( data, 'rotationY', 0, 2 * Math.PI ).name( "rotate on y" ).listen().onChange(
-        function( value ) { objContainer.rotation.set( 0, value, 0 ); }
+        function( value ) { objContainer.rotation.y = value; }
     );
     rotationFolder.add( data, 'rotationZ', 0, 2 * Math.PI ).name( "rotate on z" ).listen().onChange(
-        function( value ) { objContainer.rotation.set( 0, 0, value ); }
+        function( value ) { objContainer.rotation.z = value; }
     );
             // Set the sliders to start at 0. This is related to the above bug issue.
             data.rotationX = data.rotationY = data.rotationZ = 0;
