@@ -70,34 +70,24 @@ function init() {
     // See http://stackoverflow.com/a/24818245/4085283, and http://stackoverflow.com/a/21016088/4085283.
     document.getElementById("i_file").addEventListener("change", function(event) {
 
-        var file = event.target.files[0];
-        var fileName = file.name.substr(0, file.name.length - 4);
-        var fileReader = new FileReader();
-
-        fileReader.onload = function( event ) {
-            var fileAsString = event.target.result;
-
-            console.log( "File was loaded successfully." +
-                         "\nName: " + file.name +
-                         "\nSize: " + file.size + " bytes" );
-
-            var triangulatedFile = new Blob( [ triangulate( fileAsString ) ], { type: "text/plain" } );
-
-            var tmppath = window.URL.createObjectURL( triangulatedFile );
-
-            loadedObject = create3DObject( tmppath, fileName, loadedObjectMaterial );
-
-            loadedObject.deletable = true; // see 'clearObjects' button in the gui_slders.js fileName
-
-            scene.add( loadedObject );
+        // If there is already an object in the scene, remove it.
+        if ( typeof loadedObject !== "undefined" ) {
+            scene.remove( loadedObject );
         }
 
-        fileReader.readAsText( file );
+        window.file = event.target.files[0];
+        var filePath = window.URL.createObjectURL( file );
+
+        loadedObject = create3DObject( filePath, file.name, loadedObjectMaterial );
+        scene.add( loadedObject );
+
+        console.log( "File was loaded successfully." +
+                     "\nName: " + file.name +
+                     "\nSize: " + file.size + " bytes" );
 
     });
 
 }
-
 
 /* Creates some lights and adds them to the scene. */
 function lights() {
@@ -116,16 +106,11 @@ function lights() {
 // returning the object it loaded. This seems like a poor trick since now our actual Object3D is nested
 // within a dummy Object3D, but it's from mrdoob himself http://stackoverflow.com/a/22977590/4085283
 // We want for this container to be global so that scaling and rotational properties can be inherited by
-// any of the objects put inside this container.
+// any of the objects put inside this container. See gui.js for that.
 var objContainer = new THREE.Object3D;
 
 /* Loads our 3D Object and returns it. */
 function create3DObject( obj_url, obj_name, obj_material ) {
-
-    // If there is already an object in the scene, remove it.
-    if ( typeof loadedObject !== "undefined" ) {
-        scene.remove( loadedObject );
-    }
 
     // Clears our container.
     objContainer.children.length = 0;

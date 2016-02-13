@@ -5,40 +5,14 @@ createGUI();
 
 function createGUI() {
 
-    constants = {
-        sideOptions : {
-            "front side" : THREE.FrontSide,
-            "back side" : THREE.BackSide,
-            "double side" : THREE.DoubleSide
-        },
-
-        shadingOptions : {
-            "flat shading" : THREE.FlatShading,
-            "smooth shading" : THREE.SmoothShading
-        }
-    };
-
     var gui = new dat.GUI();
     gui.domElement.id = "gui";
 
     createGuiScale( gui );
     createGuiRotation( gui );
     createGuiMaterial( gui );
-
-    // Clear button.
-    gui.add(
-    {
-        clearObjects: function() {
-            var objs = scene.children;
-            for ( var i = objs.length - 1; i >= 0; i-- ) {
-                obj = objs[ i ];
-                if ( obj.deletable === true )
-                    scene.remove( obj );
-            }
-        }
-    }, 'clearObjects').name( "clear objects" );
-
-
+    createTriangulation( gui );
+    
     // Start with a collpased GUI.
     gui.close();
 
@@ -120,6 +94,19 @@ function createGuiMaterial( gui ) {
         shading : THREE.FlatShading
     }
 
+    var constants = {
+        sideOptions : {
+            "front side" : THREE.FrontSide,
+            "back side" : THREE.BackSide,
+            "double side" : THREE.DoubleSide
+        },
+
+        shadingOptions : {
+            "flat shading" : THREE.FlatShading,
+            "smooth shading" : THREE.SmoothShading
+        }
+    };
+
     var materialFolder = gui.addFolder( "Material" );
 
     materialFolder.addColor( data, 'baseColor' ).onChange(
@@ -134,4 +121,52 @@ function createGuiMaterial( gui ) {
         updateSide( loadedObjectMaterial )
     );
 
+}
+
+
+function createTriangulation( gui ) {
+
+    gui.add( {
+        triangulate: function() {
+
+            var fileReader = new FileReader();
+
+            fileReader.onload = function( event ) {
+
+                var fileAsString = event.target.result;
+                var triangulatedFileAsString = triangulate( fileAsString );
+                var triangulatedFile = new Blob( [ triangulatedFileAsString ], { type: "text/plain" } );
+                var newFilePath = window.URL.createObjectURL( triangulatedFile );
+
+                triangulated = true;
+                console.log( "File was triangulated successfully." +
+                             "\nThe new size is " + triangulatedFile.size + " bytes.");
+
+                loadedObject = create3DObject( newFilePath, window.file.name, loadedObjectMaterial );
+                scene.add( loadedObject );
+
+                var download_link = document.getElementById("download_link");
+                download_link.style.display = "inline";
+                download_link.download = window.file.name.slice(0,-4) + "_triangulated.obj";
+                download_link.href = newFilePath;
+
+                document.getElementById("download_hreaker").style.display="block";
+
+            };
+            fileReader.readAsText( window.file );
+
+        }
+    }, 'triangulate').name( "triangulate!" )
+
+}
+
+
+function getTriangulationButton() {
+    var guiButtons = gui.getElementsByClassName("property-name");
+    var triangulationButton;
+    for ( var i = 0; i < guiButtons.length; i++ ) {
+        if ( guiButtons[i].innerHTML === "triangulate!" )
+            triangulationButton = guiButtons[i];
+    };
+    return triangulationButton;
 }

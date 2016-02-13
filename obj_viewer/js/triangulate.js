@@ -35,7 +35,7 @@ function triangulate( fileAsString ) {
 
         if ( first_char === 'f' && second_char === ' ') {
 
-            var vertices = line.substr(2).split(' ');
+            var vertices = line.trim().substr(2).split(' ');
             var fixed_vertex = vertices[0];
 
             for ( var k = 1; k <= vertices.length - 2; k++ )
@@ -44,8 +44,6 @@ function triangulate( fileAsString ) {
 
         }
     }
-
-    console.log("File was triangulated successfully.")
 
     return fileAsStringTriangulated;
 
