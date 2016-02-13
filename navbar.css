@@ -6,3 +6,11 @@ body {
 .navbar {
   margin-bottom: 20px;
 }
+
+.jumbotron {
+    text-align: center;
+}
+
+.jumbotron .file {
+    text-align: left;
+}
