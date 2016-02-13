@@ -22,7 +22,7 @@
     <div class="sidebar">
         <input type="file" id="i_file" value="">
         <ul>
-            <a download="" id="download_link">Download triangulated .obj file.</a>
+            <a download="" id="download_link">Download triangulated .obj file</a>
             <hr id="download_hreaker">
             <li id="vertices"></li>
             <li id="edges"></li>
@@ -39,6 +39,7 @@
     <script src="../../js-libraries/three.js"></script>
     <script src="../../js-libraries/OBJLoader.js"></script>     <!-- So we can load .obj files -->
     <script src="../../js-libraries/OrbitControls.js"></script> <!-- So we can control the camera -->
+    <script src="../../js-libraries/THREEx.KeyboardState.js"></script>
     <script src="../../js-libraries/dat.gui.min.js"></script>   <!-- To include fancy sliders -->
 
     <!-- Some CSS to make the gui text larger -->
@@ -50,7 +51,7 @@
         }
 
         .dg li:not(.folder) {
-            /*background: rgba(0, 0, 0, 1);*/
+            background: rgba(0, 0, 0, 1);
             border-bottom: 1px solid #ddd;
         }
     </style>
