@@ -44,24 +44,35 @@
 
     <!-- Some CSS to make the gui text larger -->
     <style>
-        .dg {
-            color: #fff;
-            font-size: 14px;
-            text-shadow: none !important;
-        }
+    .dg {
+        color: #fff;
+        font-size: 14px;
+        text-shadow: none !important;
+    }
 
-        .dg li:not(.folder) {
-            background: rgba(0, 0, 0, 1);
-            border-bottom: 1px solid #ddd;
-        }
+    .dg li:not(.folder) {
+        /*background: rgba(0, 0, 0, 1); !! transparency of gui makes the folders buggy when closed. */
+        border-bottom: 1px solid #ddd;
+    }
     </style>
 
     <!-- This code is the actual assignment. -->
-
     <script src="js/triangulate.js"></script>
     <script src="js/xyzAxes.js"></script>       <!-- Displays debug axes -->
     <script src="js/obj_viewer.js"></script>
     <script src="js/updates.js"></script>
     <script src="js/gui.js"></script>
+
+    <!-- Google analytics -->
+    <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-70865218-2', 'auto');
+    ga('send', 'pageview');
+    </script>
+
 </body>
 </html>
