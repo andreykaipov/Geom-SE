@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,26 +16,31 @@
 
     <!-- Custom styles for this template -->
     <link href="navbar.css" rel="stylesheet">
+
+    <!-- Core Three.js library plus extras -->
+    <script src="../../js-libraries/three.js"></script>
+    <script src="../../js-libraries/OBJLoader.js"></script>     <!-- So we can load .obj files -->
+    <script src="../../js-libraries/OrbitControls.js"></script> <!-- So we can control the camera -->
 </head>
 
 <body>
 
     <div class="container">
-        <nav class="navbar navbar-light bg-faded">
+        <nav class="container navbar navbar-light bg-faded navbar-fixed-top">
             <button class="navbar-toggler hidden-sm-up" type="button" data-toggle="collapse" data-target="#navbar-header" aria-controls="navbar-header">
                 &#9776;
             </button>
             <div class="collapse navbar-toggleable-xs" id="navbar-header">
-                <a class="navbar-brand" href="#">Geom SE</a>
+                <a class="navbar-brand" href="../">Geom SE</a>
                 <ul class="nav navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../">Home</a>
+                    </li>
                     <li class="nav-item active">
-                        <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+                        <a class="nav-link" href="#">Browse</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="browse/">Browse</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="obj_viewer/">OBJ Viewer</a>
+                        <a class="nav-link" href="obj_viewer">OBJ Viewer</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">About</a>
@@ -46,22 +50,37 @@
         </nav> <!-- /navbar -->
 
         <!-- Main component for a primary marketing message or call to action -->
-        <div class="jumbotron">
-            <h3>Upload your OBJ files!</h3>
-            <form action="upload.php" method="post" enctype="multipart/form-data" id="upload">
-                <label class="file">
-                    <input accept=".obj" type="file" name="fileToUpload" id="fileToUpload">
-                    <span class="file-custom"></span>
-                </label>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-3 col-md-2 sidebar">
+                    <ul class="nav nav-sidebar">
+                        <li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
+                        <li><a href="#">Reports</a></li>
+                        <li><a href="#">Analytics</a></li>
+                        <li><a href="#">Export</a></li>
+                    </ul>
+                    <ul class="nav nav-sidebar">
+                        <li><a href="">Nav item</a></li>
+                        <li><a href="">Nav item again</a></li>
+                        <li><a href="">One more nav</a></li>
+                        <li><a href="">Another nav item</a></li>
+                        <li><a href="">More navigation</a></li>
+                    </ul>
+                    <ul class="nav nav-sidebar">
+                        <li><a href="">Nav item again</a></li>
+                        <li><a href="">One more nav</a></li>
+                        <li><a href="">Another nav item</a></li>
+                    </ul>
+                </div>
+                <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                    <h1 class="page-header">Dashboard</h1>
 
-                <label class="tags">
-                    <input style="cursor: auto;" class="file" type="text" name="tags" id="tagsToUpload" placeholder="Enter some tags...">
-                    <input class="btn btn-primary-outline" type="submit" value="Upload" name="submit">
-                </label>
-
-            </form>
+                    <div class="row placeholders">
+                        <!-- WebGL stuff will go here -->
+                    </div>
+                </div>
+            </div>
         </div>
-
 
         <?php
 
@@ -77,18 +96,7 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js" integrity="sha256-GMscmjNs6MbZvXG2HRjP3MpdOGmXv078SRgH7M723Mc= sha512-1wnhBRtA+POGVA0yREk2RlDbJEdkNvMuRBGjT1FCI5wXmpiQHZWDIB8MpANBWM/GKSPDgCA/7HTrAIFgv70/Jw==" crossorigin="anonymous"></script>
-
-
-    <script>
-    var fileName;
-    $('input[type="file"]').change(function(e){
-        fileName = e.target.files[0].name;
-    });
-    $('.file').on('change', function () {
-        document.styleSheets[0].addRule('label .file-custom:after', 'content: "' + fileName + '";');
-        $('.file-custom').css('overflow','hidden'); // hide the overflowing text if file name is too long
-    });
-    </script>
+    <script src="list.js"></script>
 
 </body>
 </html>
