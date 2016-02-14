@@ -206,6 +206,7 @@ window.addEventListener( "resize", function() {
     camera.updateProjectionMatrix();
 });
 
+
 function keyboardUpdate() {
 
     // Get the vector representing the direction in which the camera is looking.
@@ -229,11 +230,11 @@ function keyboardUpdate() {
     }
     else if ( keyboard.pressed("F") ) {
         camera.position.sub( new THREE.Vector3(0, 0.1, 0) );
-        camera.lookAt( mouseControls.target = camera.getWorldDirection() );
+        // camera.lookAt( mouseControls.target = camera.getWorldDirection() );
     }
 	else if ( keyboard.pressed("R") ) {
         camera.position.add( new THREE.Vector3(0, 0.1, 0) );
-        camera.lookAt( mouseControls.target = camera.getWorldDirection() );
+        // camera.lookAt( mouseControls.target = camera.getWorldDirection() );
     }
 	else if ( keyboard.pressed("Z") )
 	{
@@ -242,4 +243,5 @@ function keyboardUpdate() {
         camera.lookAt( 0, 0, 0 );
 	}
     camera.updateProjectionMatrix();
+
 }

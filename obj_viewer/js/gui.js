@@ -10,9 +10,10 @@ function createGUI() {
 
     createGuiScale( gui );
     createGuiRotation( gui );
+    createGuiTranslation( gui );
     createGuiMaterial( gui );
     createTriangulation( gui );
-    
+
     // Start with a collpased GUI.
     gui.close();
 
@@ -21,8 +22,6 @@ function createGUI() {
 
 function createGuiScale( gui ) {
 
-    // We need to start off with non-integer values because dat.gui is a little buggy.
-    // See https://github.com/dataarts/dat.gui/issues/48 for more info.
     var data = {
         scaleX : 1,
         scaleY : 1,
@@ -40,8 +39,10 @@ function createGuiScale( gui ) {
     scaleFolder.add( data, 'scaleZ', 1, 100 ).step(1).name( "scale z" ).listen().onChange(
         function( value ) { objContainer.scale.setZ( value ); }
     );
+
     scaleFolder.add( {
         // Reset object scale and reset gui sliders.
+        // Without the .listen() method above, the gui sliders will not visually reset !
         resetScale: function() {
             data.scaleX = data.scaleY = data.scaleZ = 1;
             objContainer.scale.set( 1, 1, 1 );
@@ -61,27 +62,59 @@ function createGuiRotation( gui ) {
         rotationZ : 0.001
     };
 
-    var rotationFolder = gui.addFolder( "Rotation (clockwise in radians)" );
+    var translationFolder = gui.addFolder( "Rotation (clockwise in radians)" );
 
-    rotationFolder.add( data, 'rotationX', 0, 2 * Math.PI ).name( "rotate on x" ).listen().onChange(
+    translationFolder.add( data, 'rotationX', 0, 2 * Math.PI ).name( "rotate on x" ).listen().onChange(
         function ( value ) { objContainer.rotation.x = value; }
     );
-    rotationFolder.add( data, 'rotationY', 0, 2 * Math.PI ).name( "rotate on y" ).listen().onChange(
+    translationFolder.add( data, 'rotationY', 0, 2 * Math.PI ).name( "rotate on y" ).listen().onChange(
         function( value ) { objContainer.rotation.y = value; }
     );
-    rotationFolder.add( data, 'rotationZ', 0, 2 * Math.PI ).name( "rotate on z" ).listen().onChange(
+    translationFolder.add( data, 'rotationZ', 0, 2 * Math.PI ).name( "rotate on z" ).listen().onChange(
         function( value ) { objContainer.rotation.z = value; }
     );
-            // Set the sliders to start at 0. This is related to the above bug issue.
-            data.rotationX = data.rotationY = data.rotationZ = 0;
 
-    rotationFolder.add( {
+    // Set the sliders to start at 0. This is related to the above bug issue.
+    data.rotationX = data.rotationY = data.rotationZ = 0;
+
+    translationFolder.add( {
         // Reset object rotation and reset gui sliders.
         resetRotation: function() {
             data.rotationX = data.rotationY = data.rotationZ = 0;
             objContainer.rotation.set( 0, 0, 0 );
         }
     }, 'resetRotation' ).name( "reset rotation" );
+
+}
+
+
+function createGuiTranslation( gui ) {
+
+    var data = {
+        translationX : 0,
+        translationY : 0,
+        translationZ : 0
+    };
+
+    var translationFolder = gui.addFolder( "Translation" );
+
+    translationFolder.add( data, 'translationX', -20, 20 ).step(1).name( "translate x" ).listen().onChange(
+        function ( value ) { objContainer.position.setX( value ); }
+    );
+    translationFolder.add( data, 'translationY', -20, 20 ).step(1).name( "translate y" ).listen().onChange(
+        function( value ) { objContainer.position.setY( value ); }
+    );
+    translationFolder.add( data, 'translationZ', -20, 20 ).step(1).name( "translate z" ).listen().onChange(
+        function( value ) { objContainer.position.setZ( value ); }
+    );
+
+    translationFolder.add( {
+        // Reset object translation and reset gui sliders.
+        resetTranslation: function() {
+            data.translationX = data.translationY = data.translationZ = 0;
+            objContainer.position.set( 0, 0, 0 );
+        }
+    }, 'resetTranslation' ).name( "reset translation" );
 
 }
 
