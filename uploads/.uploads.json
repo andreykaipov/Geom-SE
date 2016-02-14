@@ -1,0 +1,5 @@
+[ { "name": "dummy_object" },
+{ "name": "torus.obj", "id": "158240775556bfecb291223", "path": "uploads/torus.obj", "vertices": 1024, "edges": 3072, "faces": 2048, "genus": 1, "tags": "torus" },
+{ "name": "cat.obj", "id": "90792718456bfecde1b1e1", "path": "uploads/cat.obj", "vertices": 1502, "edges": 4500, "faces": 3000, "genus": 0, "tags": "cat" },
+{ "name": "82porsch.obj", "id": "26448407656bfece5591c6", "path": "uploads/82porsch.obj", "vertices": 5247, "edges": 15711, "faces": 10474, "genus": -4, "tags": "porsche, car" },
+{ "name": "airboat.obj", "id": "122849170356bfecee6b482", "path": "uploads/airboat.obj", "vertices": 5797, "edges": 17349, "faces": 11566, "genus": -6, "tags": "airboat, water" } ]

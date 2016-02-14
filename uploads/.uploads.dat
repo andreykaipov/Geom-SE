@@ -1,3 +1,0 @@
-{ name: "torus.obj", vertices: 1024, edges: 3072, faces: 2048, genus: 1, tags: "torus" }
-{ name: "gargoyle.nf20k.obj", vertices: 10002, edges: 30000, faces: 20000, genus: 0, tags: "gargoyle" }
-{ name: "82porsch.obj", vertices: 5247, edges: 15711, faces: 10474, genus: -4, tags: "porsche car" }

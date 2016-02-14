@@ -33,10 +33,10 @@
                         <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Browse</a>
+                        <a class="nav-link" href="browse/">Browse</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="obj_viewer">OBJ Viewer</a>
+                        <a class="nav-link" href="obj_viewer/">OBJ Viewer</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">About</a>
@@ -63,32 +63,31 @@
         </div>
 
 
-    </form>
-    <?php
+        <?php
 
-    // current directory
-    echo getcwd() . "\n";
-    ?>
+        // current directory
+        echo getcwd() . "\n";
+        ?>
 
-</div> <!-- /container -->
+    </div> <!-- /container -->
 
 
-<!-- Bootstrap core JavaScript
-================================================== -->
-<!-- Placed at the end of the document so the pages load faster -->
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js" integrity="sha256-GMscmjNs6MbZvXG2HRjP3MpdOGmXv078SRgH7M723Mc= sha512-1wnhBRtA+POGVA0yREk2RlDbJEdkNvMuRBGjT1FCI5wXmpiQHZWDIB8MpANBWM/GKSPDgCA/7HTrAIFgv70/Jw==" crossorigin="anonymous"></script>
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js" integrity="sha256-GMscmjNs6MbZvXG2HRjP3MpdOGmXv078SRgH7M723Mc= sha512-1wnhBRtA+POGVA0yREk2RlDbJEdkNvMuRBGjT1FCI5wXmpiQHZWDIB8MpANBWM/GKSPDgCA/7HTrAIFgv70/Jw==" crossorigin="anonymous"></script>
 
 
     <script>
-        var fileName;
-        $('input[type="file"]').change(function(e){
-            fileName = e.target.files[0].name;
-        });
-        $('.file').on('change', function () {
-            document.styleSheets[0].addRule('label .file-custom:after', 'content: "' + fileName + '";');
-            $('.file-custom').css('overflow','hidden'); // hide the overflowing text if file name is too long
-        });
+    var fileName;
+    $('input[type="file"]').change(function(e){
+        fileName = e.target.files[0].name;
+    });
+    $('.file').on('change', function () {
+        document.styleSheets[0].addRule('label .file-custom:after', 'content: "' + fileName + '";');
+        $('.file-custom').css('overflow','hidden'); // hide the overflowing text if file name is too long
+    });
     </script>
 
 </body>

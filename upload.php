@@ -31,12 +31,12 @@ if ( $uploadOk == 0 ) {
 
 if ( $uploadOk == 1 ) {
 
-    $obj_file_to_read = fopen( $_FILES["fileToUpload"]["tmp_name"], "r" );
+    $obj_file_arr = file( $_FILES["fileToUpload"]["tmp_name"] );
     $triangulated_obj_file = fopen ( $target_file, "w+" );
     $numVertices = 0;
     $numFaces = 0;
 
-    while ( ($line = fgets($obj_file_to_read) ) !== false ) {
+    foreach ( array_unique($obj_file_arr) as $line ) {
 
         if ( $line[0] == 'v' && $line[1] == ' ' ) {
             fwrite( $triangulated_obj_file, $line );
@@ -60,18 +60,17 @@ if ( $uploadOk == 1 ) {
     $numEdges = (3 / 2) * $numFaces;
     $genus = 1 - ($numVertices / 2) + ($numFaces / 4);
 
-    fclose( $obj_file_to_read );
     fclose( $triangulated_obj_file );
 
 
-    $uploadsDAT = fopen( "uploads/.uploads.dat", "a+" );
-
+    $uploads_dat = fopen( "uploads/.uploads.json", "r+" );
+    $obj_id = uniqid(rand());
     $tags = $_POST["tags"];
-    $text = "{ name: \"{$_FILES["fileToUpload"]["name"]}\", vertices: {$numVertices}, edges: {$numEdges}, faces: {$numFaces}, genus: {$genus}, tags: \"{$tags}\" }\n";
+    $obj_info = "{ \"name\": \"{$_FILES["fileToUpload"]["name"]}\", \"id\": \"{$obj_id}\", \"path\": \"{$target_file}\", \"vertices\": {$numVertices}, \"edges\": {$numEdges}, \"faces\": {$numFaces}, \"genus\": {$genus}, \"tags\": \"{$tags}\" }";
 
-    fwrite( $uploadsDAT, $text );
-
-    fclose( $uploadsDAT );
+    fseek( $uploads_dat, -2, SEEK_END );
+    fwrite( $uploads_dat, ",\n" . $obj_info . " ]" );
+    fclose( $uploads_dat );
 
     move_uploaded_file( $_FILES["fileToUpload"]["tmp_name"], $triangulated_target_file );
 
