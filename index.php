@@ -50,11 +50,15 @@
             <h3>Upload your OBJ files!</h3>
             <form action="upload.php" method="post" enctype="multipart/form-data" id="upload">
                 <label class="file">
-                    <input type="file" name="fileToUpload" id="fileToUpload">
+                    <input accept=".obj" type="file" name="fileToUpload" id="fileToUpload">
                     <span class="file-custom"></span>
                 </label>
 
-                <input style="margin-top: 15px;" class="btn btn-primary-outline" type="submit" value="Upload" name="submit">
+                <label class="tags">
+                    <input style="cursor: auto;" class="file" type="text" name="tags" id="tagsToUpload" placeholder="Enter some tags...">
+                    <input class="btn btn-primary-outline" type="submit" value="Upload" name="submit">
+                </label>
+
             </form>
         </div>
 
@@ -81,8 +85,9 @@
         $('input[type="file"]').change(function(e){
             fileName = e.target.files[0].name;
         });
-        $('#upload').on('change', function () {
+        $('.file').on('change', function () {
             document.styleSheets[0].addRule('label .file-custom:after', 'content: "' + fileName + '";');
+            $('.file-custom').css('overflow','hidden'); // hide the overflowing text if file name is too long
         });
     </script>
 

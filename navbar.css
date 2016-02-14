@@ -14,3 +14,7 @@ body {
 .jumbotron .file {
     text-align: left;
 }
+
+.tags {
+    display: block;
+}
