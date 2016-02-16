@@ -99,8 +99,8 @@ function init() {
 /* Creates some lights and adds them to the scene. */
 function lights() {
 
-    var ambientLight = new THREE.AmbientLight( 0xffffff );
-    scene.add( ambientLight );
+    // var ambientLight = new THREE.AmbientLight( 0xffffff );
+    // scene.add( ambientLight );
 
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
     directionalLight.position.set( 0, 1, 1 );
@@ -158,6 +158,7 @@ function create3DObject( obj_url, obj_name, obj_material ) {
                 // touches three half-edges, so we have 2E = 3F.
                 var numVertices = geometry.vertices.length;
                 var numFaces = geometry.faces.length;
+
                 document.getElementById("vertices").innerHTML = "Vertices: " + numVertices;
                 document.getElementById("edges").innerHTML = "Edges: " + 3/2 * numFaces;
                 document.getElementById("faces").innerHTML = "Faces: " + numFaces;
@@ -173,6 +174,11 @@ function create3DObject( obj_url, obj_name, obj_material ) {
         objContainer.add( object );
 
     }); // end loader
+
+    // Hide download button to the old triangulated obj file.
+    // This has to be outside of the loader because loading is asynchronous.
+    document.getElementById("download_link").style.display = "none";
+    document.getElementById("download_hreaker").style.display = "none";
 
     return objContainer;
 

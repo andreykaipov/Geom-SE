@@ -1,3 +1,6 @@
+#
+# @author Andrey Kaipov
+#
 # ARGV[0] is the source .obj file to be triangulated.
 # ARGV[1] is the triangulated .obj file with a name of your choice.
 #

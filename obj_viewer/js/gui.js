@@ -1,3 +1,7 @@
+/**
+  * @author Andrey Kaipov
+  */
+
 // See the source for this. It's really innovative and helped a lot.
 // http://threejs.org/docs/scenes/material-browser.html#MeshPhongMaterial
 
@@ -183,7 +187,7 @@ function createTriangulation( gui ) {
                 download_link.download = window.file.name.slice(0,-4) + "_triangulated.obj";
                 download_link.href = newFilePath;
 
-                document.getElementById("download_hreaker").style.display="block";
+                document.getElementById("download_hreaker").style.display = "block";
 
             };
             fileReader.readAsText( window.file );

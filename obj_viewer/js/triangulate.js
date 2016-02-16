@@ -1,3 +1,7 @@
+/**
+  * @author Andrey Kaipov
+  */
+
 /* =========== Triangulation =========== */
 
 /*
