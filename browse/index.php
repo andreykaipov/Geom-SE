@@ -40,7 +40,7 @@
                         <a class="nav-link" href="#">Browse</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="obj_viewer">OBJ Viewer</a>
+                        <a class="nav-link" href="../obj_viewer">OBJ Viewer</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">About</a>

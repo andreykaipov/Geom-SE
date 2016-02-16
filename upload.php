@@ -33,6 +33,7 @@ if ( $uploadOk == 1 ) {
 
     $obj_file_arr = file( $_FILES["fileToUpload"]["tmp_name"] );
     $triangulated_obj_file = fopen ( $target_file, "w+" );
+
     $numVertices = 0;
     $numFaces = 0;
 
@@ -62,7 +63,6 @@ if ( $uploadOk == 1 ) {
 
     fclose( $triangulated_obj_file );
 
-
     $uploads_dat = fopen( "uploads/.uploads.json", "r+" );
     $obj_id = uniqid(rand());
     $tags = $_POST["tags"];
@@ -72,9 +72,14 @@ if ( $uploadOk == 1 ) {
     fwrite( $uploads_dat, ",\n" . $obj_info . " ]" );
     fclose( $uploads_dat );
 
-    move_uploaded_file( $_FILES["fileToUpload"]["tmp_name"], $triangulated_target_file );
-
-    echo "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded.";
+    // CHECK THE FOLDER AND FILE PERMISSIONS,
+    // BEFORE YOU THINK UPLOAD AND WRITE IS NOT WORKING !
+    if ( move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file) ) {
+        echo "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded.";
+    }
+    else {
+        echo "Sorry, there was an error uploading your file.";
+    }
 
 }
 else {
