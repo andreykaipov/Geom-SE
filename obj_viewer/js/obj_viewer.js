@@ -99,8 +99,8 @@ function init() {
 /* Creates some lights and adds them to the scene. */
 function lights() {
 
-    // var ambientLight = new THREE.AmbientLight( 0xffffff );
-    // scene.add( ambientLight );
+    var ambientLight = new THREE.AmbientLight( 0xffffff );
+    scene.add( ambientLight );
 
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
     directionalLight.position.set( 0, 1, 1 );
@@ -158,7 +158,6 @@ function create3DObject( obj_url, obj_name, obj_material ) {
                 // touches three half-edges, so we have 2E = 3F.
                 var numVertices = geometry.vertices.length;
                 var numFaces = geometry.faces.length;
-
                 document.getElementById("vertices").innerHTML = "Vertices: " + numVertices;
                 document.getElementById("edges").innerHTML = "Edges: " + 3/2 * numFaces;
                 document.getElementById("faces").innerHTML = "Faces: " + numFaces;
@@ -172,7 +171,7 @@ function create3DObject( obj_url, obj_name, obj_material ) {
         }); // end object.traverse
 
         objContainer.add( object );
-
+        
     }); // end loader
 
     // Hide download button to the old triangulated obj file.
@@ -218,19 +217,19 @@ function keyboardUpdate() {
     // Get the vector representing the direction in which the camera is looking.
     var dirVector = camera.getWorldDirection().multiplyScalar(0.10);
 
-	if ( keyboard.pressed("W") ) {
+    if ( keyboard.pressed("W") ) {
         camera.position.add( dirVector );
         camera.lookAt( mouseControls.target = camera.getWorldDirection() );
     }
-	else if ( keyboard.pressed("S") ) {
+    else if ( keyboard.pressed("S") ) {
         camera.position.sub( dirVector );
         camera.lookAt( mouseControls.target = camera.getWorldDirection() );
     }
-	else if ( keyboard.pressed("A") ) {
+    else if ( keyboard.pressed("A") ) {
         camera.position.sub( dirVector.cross( new THREE.Vector3( 0, 1, 0) ) );
         camera.lookAt( mouseControls.target = camera.getWorldDirection() );
     }
-	else if ( keyboard.pressed("D") ) {
+    else if ( keyboard.pressed("D") ) {
         camera.position.add( dirVector.cross( new THREE.Vector3( 0, 1, 0) ) );
         camera.lookAt( mouseControls.target = camera.getWorldDirection() );
     }
@@ -238,16 +237,16 @@ function keyboardUpdate() {
         camera.position.sub( new THREE.Vector3(0, 0.1, 0) );
         // camera.lookAt( mouseControls.target = camera.getWorldDirection() );
     }
-	else if ( keyboard.pressed("R") ) {
+    else if ( keyboard.pressed("R") ) {
         camera.position.add( new THREE.Vector3(0, 0.1, 0) );
         // camera.lookAt( mouseControls.target = camera.getWorldDirection() );
     }
-	else if ( keyboard.pressed("Z") )
-	{
+    else if ( keyboard.pressed("Z") )
+    {
         camera.position.set( 0, 0, 5 );
         mouseControls.target.set( 0, 0, 0 );
         camera.lookAt( 0, 0, 0 );
-	}
+    }
     camera.updateProjectionMatrix();
 
 }
