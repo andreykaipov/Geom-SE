@@ -1,2 +1,5 @@
 # Ignore uploads
 uploads/
+
+# Ignore ChromePhp.php dev console thing.
+ChromePhp.php
