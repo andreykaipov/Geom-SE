@@ -26,17 +26,22 @@ if ($fileType != "obj" ) {
 // Check if $uploadOk is set to 0 by an error
 if ( $uploadOk == 0 ) {
     echo "Your file was not uploaded.";
-    // if everything is ok, try to upload file
 }
 
+// Check the folder and file permissions before you think the upload/write is not working!!
 if ( $uploadOk == 1 ) {
 
-    $obj_file_arr = file( $_FILES["fileToUpload"]["tmp_name"] );
+    // Create a new file in our directory. We will write our triangulated obj file to it.
     $triangulated_obj_file = fopen ( $target_file, "w+" );
 
+    // Make an array of lines from our obj file.
+    $obj_file_arr = file( $_FILES["fileToUpload"]["tmp_name"] );
+
+    // This is important data. :-)
     $numVertices = 0;
     $numFaces = 0;
 
+    // Do the typical fan algorithm like in the OBJ_Viewer JS code.
     foreach ( array_unique($obj_file_arr) as $line ) {
 
         if ( $line[0] == 'v' && $line[1] == ' ' ) {
@@ -58,28 +63,24 @@ if ( $uploadOk == 1 ) {
 
     }
 
+    fclose( $triangulated_obj_file );
+
+    // Use the Euler characteristic formula for closed surfaces, 2 - 2g = V - E + F.
     $numEdges = (3 / 2) * $numFaces;
     $genus = 1 - ($numVertices / 2) + ($numFaces / 4);
 
-    fclose( $triangulated_obj_file );
-
-    $uploads_dat = fopen( "uploads/.uploads.json", "r+" );
+    // Write to our json data file.
+    $uploads_data = fopen( "uploads/.uploads.json", "r+" );
     $obj_id = uniqid(rand());
     $tags = $_POST["tags"];
     $obj_info = "{ \"name\": \"{$_FILES["fileToUpload"]["name"]}\", \"id\": \"{$obj_id}\", \"path\": \"{$target_file}\", \"vertices\": {$numVertices}, \"edges\": {$numEdges}, \"faces\": {$numFaces}, \"genus\": {$genus}, \"tags\": \"{$tags}\" }";
 
-    fseek( $uploads_dat, -2, SEEK_END );
-    fwrite( $uploads_dat, ",\n" . $obj_info . " ]" );
-    fclose( $uploads_dat );
+    // These are some manipulations to keep the closing array bracket at the end.
+    fseek( $uploads_data, -2, SEEK_END );
+    fwrite( $uploads_data, ",\n" . $obj_info . " ]" );
+    fclose( $uploads_data );
 
-    // CHECK THE FOLDER AND FILE PERMISSIONS,
-    // BEFORE YOU THINK UPLOAD AND WRITE IS NOT WORKING !
-    if ( move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file) ) {
-        echo "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded.";
-    }
-    else {
-        echo "Sorry, there was an error uploading your file.";
-    }
+    echo "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded.";
 
 }
 else {
