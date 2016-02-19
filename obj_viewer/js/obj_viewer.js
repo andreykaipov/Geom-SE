@@ -13,6 +13,8 @@ to do:
     so I just made the keyboard controls just rotate around the origin or something like that.
     I might just take these out...
 - allow objects to be selectable
+    - We can easily multiply objects and give them their own controls, but they have to be
+      selectable if we want a dynamic amount of objects. Look into Raytracjer.js for this.
 - add customizable lights.
 - allow translation of added objects, because objects all clump together at
 the origin.
@@ -29,9 +31,8 @@ animate();
 // The camera is what looks at the scene.
 // The renderer will display our beautifully crafted scene.
 // The controls allow you to move around the scene with the camera.
-var scene, camera, renderer, mouseControls;
+var scene, camera, renderer, mouseControls, keyboard, objectControls;
 var loadedObject, loadedObjectMesh;
-var keyboard;
 
 /* Initializes our scene, camera, renderer, and controls. */
 function init() {
@@ -61,6 +62,9 @@ function init() {
     // Add controls so we can pan around with the mouse and arrow-keys.
     keyboard = new THREEx.KeyboardState();
     mouseControls = new THREE.OrbitControls( camera, renderer.domElement );
+    objectControls = new THREE.TransformControls( camera, renderer.domElement );
+    objectControls.addEventListener( 'change', render );
+    scene.add( objectControls );
 
     // Adds debug axes centered at (0,0,0). Remember: xyz ~ rgb. Solid is positive, dashed is negative.
     createAxes( 100 );
@@ -91,6 +95,8 @@ function init() {
         console.log( "File was loaded successfully." +
                      "\nName: " + file.name +
                      "\nSize: " + file.size + " bytes" );
+
+        objectControls.attach( loadedObject );
 
     });
 
@@ -171,7 +177,7 @@ function create3DObject( obj_url, obj_name, obj_material ) {
         }); // end object.traverse
 
         objContainer.add( object );
-        
+
     }); // end loader
 
     // Hide download button to the old triangulated obj file.
@@ -192,7 +198,8 @@ function animate() {
     }, 1000 / 30 ); // frame count goes to the denominator.
 
     render();
-    keyboardUpdate();
+    keyboardUpdateCamera();
+    keyboardUpdateObject();
 }
 
 
@@ -202,17 +209,7 @@ function render() {
 }
 
 
-// Resize canvas when window is resized.
-window.addEventListener( "resize", function() {
-    canvasWidth = window.innerWidth;
-    canvasHeight = window.innerHeight;
-    renderer.setSize( canvasWidth, canvasHeight );
-    camera.aspect = canvasWidth / canvasHeight;
-    camera.updateProjectionMatrix();
-});
-
-
-function keyboardUpdate() {
+function keyboardUpdateCamera() {
 
     // Get the vector representing the direction in which the camera is looking.
     var dirVector = camera.getWorldDirection().multiplyScalar(0.10);
@@ -250,3 +247,54 @@ function keyboardUpdate() {
     camera.updateProjectionMatrix();
 
 }
+
+function keyboardUpdateObject() {
+
+    if ( keyboard.pressed("0") )
+        objectControls.setSpace( objectControls.space === "local" ? "world" : "local" );
+
+    if ( keyboard.pressed("ctrl") ) {
+        objectControls.setTranslationSnap( 0.5 );
+        objectControls.setRotationSnap( THREE.Math.degToRad( 15 ) );
+    }
+
+    if ( keyboard.pressed("1") )
+        objectControls.setMode( "translate" );
+
+    if ( keyboard.pressed("2") )
+        objectControls.setMode( "rotate" );
+
+    if ( keyboard.pressed("3") )
+        objectControls.setMode( "scale" );
+
+    if ( keyboard.pressed("plus") || keyboard.pressed("numpad_plus") )
+        objectControls.setSize( objectControls.size + 0.1 );
+
+    if ( keyboard.pressed("minus") || keyboard.pressed("numpad_minus") )
+        objectControls.setSize( Math.max( objectControls.size - 0.1, 0.1 ) );
+
+    objectControls.update();
+
+}
+
+window.addEventListener( 'keyup', function ( event ) {
+
+    switch ( event.keyCode ) {
+
+        case 17: // Ctrl
+        objectControls.setTranslationSnap( null );
+        objectControls.setRotationSnap( null );
+        break;
+
+    }
+
+});
+
+// Resize canvas when window is resized.
+window.addEventListener( "resize", function() {
+    canvasWidth = window.innerWidth;
+    canvasHeight = window.innerHeight;
+    renderer.setSize( canvasWidth, canvasHeight );
+    camera.aspect = canvasWidth / canvasHeight;
+    camera.updateProjectionMatrix();
+});
