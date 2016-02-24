@@ -32,7 +32,12 @@ animate();
 // The renderer will display our beautifully crafted scene.
 // The controls allow you to move around the scene with the camera.
 var scene, camera, renderer, mouseControls, keyboard, objectControls;
-var loadedObject, loadedObjectMesh;
+
+var selectedObject;
+var raycaster;
+
+// The array that holds all of our loaded objects.
+var loadedObjects = [];
 
 /* Initializes our scene, camera, renderer, and controls. */
 function init() {
@@ -62,9 +67,7 @@ function init() {
     // Add controls so we can pan around with the mouse and arrow-keys.
     keyboard = new THREEx.KeyboardState();
     mouseControls = new THREE.OrbitControls( camera, renderer.domElement );
-    objectControls = new THREE.TransformControls( camera, renderer.domElement );
-    objectControls.addEventListener( 'change', render );
-    scene.add( objectControls );
+
 
     // Adds debug axes centered at (0,0,0). Remember: xyz ~ rgb. Solid is positive, dashed is negative.
     createAxes( 100 );
@@ -81,26 +84,92 @@ function init() {
     // See http://stackoverflow.com/a/24818245/4085283, and http://stackoverflow.com/a/21016088/4085283.
     document.getElementById("i_file").addEventListener("change", function(event) {
 
-        // If there is already an object in the scene, remove it.
-        if ( typeof loadedObject !== "undefined" ) {
-            scene.remove( loadedObject );
-        }
-
-        window.file = event.target.files[0];
+        var file = event.target.files[0];
         var filePath = window.URL.createObjectURL( file );
 
-        loadedObject = create3DObject( filePath, file.name, loadedObjectMaterial );
+        var loadedObject = create3DObject( filePath, file.name, loadedObjectMaterial );
         scene.add( loadedObject );
+
+        // Add the file path as an attribute to the object.
+        // We'll need it again if the user wants to triangulate. See gui.js.
+        loadedObject.userData.filePath = filePath;
 
         console.log( "File was loaded successfully." +
                      "\nName: " + file.name +
                      "\nSize: " + file.size + " bytes" );
 
+        loadedObjects.push( loadedObject );
+
+        // Create controls for each loaded object, attach them to the loaded object,
+        // and add them to the scene so we can actually see them.
+        var objectControls = new THREE.TransformControls( camera, renderer.domElement );
+        objectControls.addEventListener( 'change', render );
         objectControls.attach( loadedObject );
+        scene.add( objectControls );
+
+        // Associate the objectControls with the loadedObject. See gui.js in triangulation button.
+        objectControls.name = "Controller for " + loadedObject.uuid;
+
+        // Make the most recently loaded object the selected object.
+        selectedObject = loadedObject;
 
     });
 
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+        document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+        document.addEventListener( 'touchstart', onDocumentTouchStart, false );
 }
+
+
+function onDocumentTouchStart( event ) {
+
+    event.preventDefault();
+
+    event.clientX = event.touches[0].clientX;
+    event.clientY = event.touches[0].clientY;
+    onDocumentMouseDown( event );
+
+}
+
+function onDocumentMouseDown( event ) {
+
+    event.preventDefault();
+
+    mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
+
+    raycaster.setFromCamera( mouse, camera );
+
+    // The true flag is for intersecting descendents of whatever is intersected.
+    var intersects = raycaster.intersectObjects( loadedObjects, true );
+
+    // intersects[0] is the mesh the raycaster intersects.
+    if ( intersects.length > 0 ) {
+
+        // The selected object is the objContainer for the object the intersected mesh belongs to!
+        selectedObject = intersects[0].object.parent.parent;
+
+        console.log("You selected " + intersects[0].object.parent.name + ".");
+
+        selectedObject.children[0].children[0].material = new THREE.MeshPhongMaterial({
+            color: Math.random() * 0xffffff,
+            emissive: 0x000000,
+            shading: THREE.FlatShading,
+            side: THREE.DoubleSide, // important.
+            reflectivity: 1
+        });
+
+        var geometry = selectedObject.children[0].children[0].geometry;
+        document.getElementById("vertices").innerHTML = "Vertices: " + geometry.num_vertices;
+        document.getElementById("edges").innerHTML = "Edges: " + 3/2 * geometry.num_faces;
+        document.getElementById("faces").innerHTML = "Faces: " + geometry.num_faces;
+        document.getElementById("genus").innerHTML = "Genus: " + geometry.genus;
+
+    }
+
+}
+
 
 /* Creates some lights and adds them to the scene. */
 function lights() {
@@ -115,17 +184,20 @@ function lights() {
 }
 
 
+
 // This container will hold our output in the following function, since OBJLoader() seems to have issues
 // returning the object it loaded. This seems like a poor trick since now our actual Object3D is nested
 // within a dummy Object3D, but it's from mrdoob himself http://stackoverflow.com/a/22977590/4085283
 // We want for this container to be global so that scaling and rotational properties can be inherited by
 // any of the objects put inside this container. See gui.js for that.
-objContainer = new THREE.Object3D;
+var objContainer;
 
 /* Loads our 3D Object and returns it. */
 function create3DObject( obj_url, obj_name, obj_material ) {
 
-    // Clears our container.
+    objContainer = new THREE.Object3D();
+
+    // Clear our container for safety.
     objContainer.children.length = 0;
 
     var loader = new THREE.OBJLoader();
@@ -164,13 +236,22 @@ function create3DObject( obj_url, obj_name, obj_material ) {
                 // touches three half-edges, so we have 2E = 3F.
                 var numVertices = geometry.vertices.length;
                 var numFaces = geometry.faces.length;
+                var numEdges = 3/2 * numFaces;
+                var genus = (1 - numVertices/2 + numFaces/4);
+
                 document.getElementById("vertices").innerHTML = "Vertices: " + numVertices;
-                document.getElementById("edges").innerHTML = "Edges: " + 3/2 * numFaces;
+                document.getElementById("edges").innerHTML = "Edges: " + numEdges;
                 document.getElementById("faces").innerHTML = "Faces: " + numFaces;
-                document.getElementById("genus").innerHTML = "Genus: " + (1 - numVertices/2 + numFaces/4);
+                document.getElementById("genus").innerHTML = "Genus: " + genus;
 
                 // Convert back to a bufferGeometry for efficiency (??)
                 mesh.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
+
+                // Store for later.
+                mesh.geometry.num_vertices = numVertices;
+                mesh.geometry.edges = numEdges;
+                mesh.geometry.num_faces = numFaces;
+                mesh.geometry.genus = genus;
 
             } // end if
 
@@ -199,7 +280,11 @@ function animate() {
 
     render();
     keyboardUpdateCamera();
-    keyboardUpdateObject();
+
+    for ( var i = 0; i < scene.children.length; i++ )
+        if ( scene.children[i] instanceof THREE.TransformControls )
+            keyboardUpdateControls( scene.children[i] );
+
 }
 
 
@@ -248,7 +333,7 @@ function keyboardUpdateCamera() {
 
 }
 
-function keyboardUpdateObject() {
+function keyboardUpdateControls( objectControls ) {
 
     if ( keyboard.pressed("0") )
         objectControls.setSpace( objectControls.space === "local" ? "world" : "local" );
