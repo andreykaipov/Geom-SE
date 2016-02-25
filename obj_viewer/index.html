@@ -20,10 +20,14 @@
 <body id="graphicsContainer">
 
     <div class="sidebar">
-        <input type="file" id="i_file" value="">
+        <input type="file" id="i_file">
         <ul>
             <a download="" id="download_link">Download triangulated .obj file</a>
             <hr id="download_hreaker">
+
+            <li id="selected_obj"></li>
+            <hr id="selected_hreaker">
+
             <li id="vertices"></li>
             <li id="edges"></li>
             <li id="faces"></li>
@@ -31,10 +35,8 @@
         </ul>
     </div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-    <!-- jQuery and jQuery UI. Don't need.
-
-    <script src="https://code.jquery.com/ui/1.12.0-beta.1/jquery-ui.min.js"></script>  -->
+    <!-- jQuery. It's used a couple times... -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 
     <!-- Core Three.js library plus extras. -->
     <script src="../../js-libraries/three.js"></script>
@@ -44,7 +46,7 @@
     <script src="../../js-libraries/THREEx.KeyboardState.js"></script> <!-- For keyboard camera controls. -->
     <script src="../../js-libraries/dat.gui.min.js"></script>   <!-- For fancy GUI sliders -->
     <script src="../../js-libraries/Projector.js"></script>
-    <script src="../../js-libraries/CanvasRenderer.js"></script>
+    <!-- <script src="../../js-libraries/CanvasRenderer.js"></script> -->
 
     <!-- Some CSS to make the gui text larger. -->
     <style>

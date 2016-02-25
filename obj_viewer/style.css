@@ -8,6 +8,8 @@ canvas {
 
 .sidebar {
     position: fixed;
+    padding-left: 5px;
+    margin-top: -10px;
 }
 
 .sidebar ul {
@@ -23,5 +25,10 @@ canvas {
 }
 
 .sidebar a {
+    display: none;
+}
+
+/* Hide the button upload display. This is used from within the gui. */
+.sidebar input {
     display: none;
 }

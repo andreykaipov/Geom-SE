@@ -14,12 +14,14 @@ function createGUI() {
     var gui = new dat.GUI();
     gui.domElement.id = "gui";
 
-    console.log(gui);
+    // console.log(gui);
+
     createGuiScale( gui );
     createGuiRotation( gui );
     createGuiTranslation( gui );
     createGuiMaterial( gui );
     createTriangulation( gui );
+    createUploadObjFile( gui );
 
     // Start with a collpased GUI.
     gui.close();
@@ -175,103 +177,157 @@ function createGuiTranslation( gui ) {
 function createGuiMaterial( gui ) {
 
     var parameters = {
-        side : THREE.DoubleSide,
-        baseColor : 0x5c54dc,
-        shading : THREE.FlatShading
+        color : 0x5c54dc,
+        shading : THREE.FlatShading,
+        side : THREE.DoubleSide
     }
 
     var constants = {
+        shadingOptions : {
+            "flat shading" : THREE.FlatShading,
+            "smooth shading" : THREE.SmoothShading
+        },
         sideOptions : {
             "front side" : THREE.FrontSide,
             "back side" : THREE.BackSide,
             "double side" : THREE.DoubleSide
-        },
-
-        shadingOptions : {
-            "flat shading" : THREE.FlatShading,
-            "smooth shading" : THREE.SmoothShading
         }
     };
 
     var materialFolder = gui.addFolder( "Material" );
 
-    materialFolder.addColor( parameters, 'baseColor' ).onChange(
-        updateColor( loadedObjectMaterial.color )
+    materialFolder.addColor( parameters, 'color' ).onChange(
+        function( value ) {
+            if ( typeof value === "string" ) {
+                value = value.replace('#', '0x');
+            }
+            selectedObjectMaterial.color.setHex( value );
+        }
     );
 
-    materialFolder.add( parameters, 'shading', constants.shadingOptions ).onFinishChange(
-        updateShading( loadedObjectMaterial )
+    materialFolder.add( parameters, 'shading', constants.shadingOptions ).onChange(
+        function( value ) {
+            selectedObjectMaterial.shading = (selectedObjectMaterial.shading === 1) ? 2 : 1;
+            selectedObjectMaterial.needsUpdate = true;
+        }
     );
 
-    materialFolder.add( parameters, 'side', constants.sideOptions ).onFinishChange(
-        updateSide( loadedObjectMaterial )
+    materialFolder.add( parameters, 'side', constants.sideOptions ).onChange(
+        function( value ) {
+            if ( value == 0 ) selectedObjectMaterial.side = 0;
+            if ( value == 1 ) selectedObjectMaterial.side = 1;
+            if ( value == 2 ) selectedObjectMaterial.side = 2;
+
+            selectedObjectMaterial.needsUpdate = true;
+        }
     );
+
+    // Update the GUI whenever a new object is loaded, or whenever the user clicks on the canvas.
+    document.getElementById("i_file").addEventListener( 'change', updateMaterialGui );
+    document.addEventListener( 'mousedown', updateMaterialGui );
+
+    // Wow the color updating was a pain to figure out.
+    function updateMaterialGui() {
+        if ( selectedObject != null ) {
+            parameters.color = "#" + selectedObjectMaterial.color.getHexString();
+            parameters.shading = selectedObjectMaterial.shading;
+            parameters.side = selectedObjectMaterial.side;
+        }
+        for ( var i in materialFolder.__controllers )
+            materialFolder.__controllers[i].updateDisplay();
+    }
+}
+
+
+function createUploadObjFile( gui ) {
+
+    gui.add({
+        uploadObj: function() {
+
+            document.getElementById("i_file").click();
+
+        }
+    }, 'uploadObj').name( "upload an obj file" );
 
 }
 
 
 function createTriangulation( gui ) {
 
-    gui.add( {
+    gui.add({
         triangulate: function() {
+
+            if ( selectedObject == null ) {
+                alert("Nothing to triangulate!");
+                return -1;
+            }
 
             // See http://stackoverflow.com/a/8197770/4085283 for the idea.
             $.ajax({
                 url : selectedObject.userData.filePath,
                 success : function( fileAsString ) {
 
+                    if ( selectedObject.userData.triangulated == true ) {
+                        alert("You've already triangulated this object!");
+                        return -1;
+                    }
+
                     var triangulatedFileAsString = triangulate( fileAsString );
                     var triangulatedFile = new Blob( [ triangulatedFileAsString ], { type: "text/plain" } );
-                    triangulatedFile.name = selectedObject.children[0].name.slice(0,-4);
+                    triangulatedFile.name = selectedObject.name.slice(0,-4) + "_triangulated.obj";
 
                     console.log( "Selected object was triangulated successfully." +
                                  "\nThe new size is " + triangulatedFile.size + " bytes.");
 
                     var newFilePath = window.URL.createObjectURL( triangulatedFile );
 
-                    // for ( var i in scene.children ) {
-                    //     if ( scene.children[i].uuid == selectedObject.uuid ) {
-                    //         scene.remove( scene.children[i] );
-                    //         break;
-                    //     }
-                    // }
-                    // scene.remove(scene.getObjectByName(selectedObject.children[0].name));
-                    // scene.remove(scene.getObjectByName(selectedObject.children[0].name).parent);
+                    var triangulatedObject = create3DObject( newFilePath, triangulatedFile.name, selectedObjectMaterial );
+                    triangulatedObject.name = triangulatedFile.name;
+                    triangulatedObject.userData.filePath = newFilePath;
 
-                    var triangulatedObject = create3DObject( newFilePath, triangulatedFile.name + "_triangulated", loadedObjectMaterial );
+                    // Set a flag to prevent user from making redundant triangulations.
+                    triangulatedObject.userData.triangulated = true;
 
-                    // Remove the object from the loadedObjects array also for raycaster to work normally !!!!!!
-                    scene.remove(selectedObject);
+                    // Replace the selectedObject from the loadedObjects array with the new triangulatedObject.
+                    // This is necessary for raycaster to work properly.
                     var found = loadedObjects.indexOf(selectedObject);
                     loadedObjects.splice( found, 1, triangulatedObject );
 
-                    scene.getObjectByName("Controller for " + selectedObject.uuid).detach();
-                    scene.remove( scene.getObjectByName("Controller for " + selectedObject.uuid) );
+                    // Detach the old controls from the selectedObject and remove them from the scene.
+                    scene.getObjectByName("Controller for " + selectedObject.id).detach();
+                    scene.remove( scene.getObjectByName("Controller for " + selectedObject.id) );
 
+                    // Remove the selectedObject from the scene and add in the triangulatedObject.
+                    scene.remove( selectedObject );
                     scene.add(triangulatedObject);
+
+                    // Make a copy of the selectedObject's properties into the new triangulatedObject.
                     triangulatedObject.scale.set( selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z );
                     triangulatedObject.position.set( selectedObject.position.x, selectedObject.position.y, selectedObject.position.z );
                     triangulatedObject.rotation.set( selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z );
 
-                    //
+                    selectedObject = triangulatedObject;
+
+                    // Give the triangulatedObject their own controls. This is similar to the loadedObject in the obj_viewer.js.
                     var objectControls = new THREE.TransformControls( camera, renderer.domElement );
                     objectControls.addEventListener( 'change', render );
                     objectControls.attach( triangulatedObject );
+                    objectControls.name = "Controller for " + triangulatedObject.id;
                     scene.add( objectControls );
 
-                    /* ================== */
-
+                    // Display the download link above the stats of the obj file.
                     var download_link = document.getElementById("download_link");
                     download_link.style.display = "inline";
-                    download_link.download = triangulatedFile.name + "_triangulated.obj";
+                    download_link.download = triangulatedFile.name;
                     download_link.href = newFilePath;
 
                     document.getElementById("download_hreaker").style.display = "block";
-                }
-            });
+
+                } // end success
+            }); // end ajax
 
         }
-    }, 'triangulate').name( "triangulate!" )
+    }, 'triangulate').name( "triangulate!" );
 
 }
 
