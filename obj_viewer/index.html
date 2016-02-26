@@ -13,8 +13,10 @@
     <!-- jQuery UI CSS. -->
     <!-- <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.4/themes/pepper-grinder/jquery-ui.css"> -->
 
+    <link rel="stylesheet" href="https://rawgit.com/codemirror/CodeMirror/master/lib/codemirror.css">
+
     <!-- Custom styles for this page. -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body id="graphicsContainer">
@@ -35,6 +37,17 @@
         </ul>
     </div>
 
+    <!-- <script id="vertexShader" type="x-shader/x-vertex">
+        void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        void main(void) {
+            gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+        }
+    </script> -->
+
     <!-- jQuery. It's used a couple times... -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 
@@ -44,9 +57,12 @@
     <script src="../../js-libraries/TransformControls.js"></script> <!-- For mouse object controls. -->
     <script src="../../js-libraries/OrbitControls.js"></script> <!-- For mouse camera controls. -->
     <script src="../../js-libraries/THREEx.KeyboardState.js"></script> <!-- For keyboard camera controls. -->
-    <script src="../../js-libraries/dat.gui.min.js"></script>   <!-- For fancy GUI sliders -->
-    <script src="../../js-libraries/Projector.js"></script>
-    <!-- <script src="../../js-libraries/CanvasRenderer.js"></script> -->
+    <script src="../../js-libraries/dat.gui.min.js"></script>   <!-- For fancy GUI sliders. -->
+    <script src="../../js-libraries/Projector.js"></script>  <!-- For raycaster to select objects. -->
+
+    <!-- CodeMirror -->
+    <script src="https://rawgit.com/codemirror/CodeMirror/master/lib/codemirror.js"></script>
+    <script src="https://rawgit.com/codemirror/CodeMirror/master/mode/javascript/javascript.js"></script>
 
     <!-- Some CSS to make the gui text larger. -->
     <style>
@@ -66,7 +82,6 @@
     <script src="js/triangulate.js"></script>   <!-- Triangulate script -->
     <script src="js/xyzAxes.js"></script>       <!-- Displays debug axes -->
     <script src="js/obj_viewer.js"></script>    <!-- Displays the model -->
-    <script src="js/updates.js"></script>       <!-- Update functions to be passed to the GUI -->
     <script src="js/gui.js"></script>           <!-- Make the GUI functional -->
 
     <!-- Google analytics. -->
