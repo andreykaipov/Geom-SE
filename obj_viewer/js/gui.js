@@ -201,7 +201,7 @@ function createGuiMaterial( gui ) {
             if ( typeof value === "string" ) {
                 value = value.replace('#', '0x');
             }
-            selectedObjectMaterial.color.setHex( value );
+            selectedObjectMaterial.uniforms.diffuse.value.setHex( value );
         }
     );
 
@@ -229,7 +229,7 @@ function createGuiMaterial( gui ) {
     // Wow the color updating was a pain to figure out.
     function updateMaterialGui() {
         if ( selectedObject != null ) {
-            parameters.color = "#" + selectedObjectMaterial.color.getHexString();
+            parameters.color = "#" + selectedObjectMaterial.uniforms.diffuse.value.getHexString();
             parameters.shading = selectedObjectMaterial.shading;
             parameters.side = selectedObjectMaterial.side;
         }

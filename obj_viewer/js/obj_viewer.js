@@ -36,6 +36,8 @@ var selectedObjectMaterial = new THREE.Material;
 
 /* Initializes our scene, camera, renderer, and controls. */
 function init() {
+    clock = new THREE.Clock();
+
 
     // Scene.
     scene = new THREE.Scene();
@@ -84,12 +86,29 @@ function loadObject() {
     var file = event.target.files[0];
     var filePath = window.URL.createObjectURL( file );
 
-    var loadedObjectMaterial = new THREE.MeshPhongMaterial({
-        color: Math.random() * 0xffffff,
-        emissive: 0x000000,
-        shading: THREE.FlatShading,
-        side: THREE.DoubleSide, // important.
-        reflectivity: 1
+    // See https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderLib.js.
+    var loadedObjectMaterial = new THREE.ShaderMaterial({
+        uniforms: THREE.UniformsUtils.merge( [
+			THREE.UniformsLib[ "common" ],
+			THREE.UniformsLib[ "aomap" ],
+			THREE.UniformsLib[ "lightmap" ],
+			THREE.UniformsLib[ "emissivemap" ],
+			THREE.UniformsLib[ "bumpmap" ],
+			THREE.UniformsLib[ "normalmap" ],
+			THREE.UniformsLib[ "displacementmap" ],
+			THREE.UniformsLib[ "fog" ],
+			THREE.UniformsLib[ "ambient" ],
+			THREE.UniformsLib[ "lights" ],
+			{
+                "diffuse": { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
+				"emissive" : { type: "c", value: new THREE.Color( 0x000000 ) },
+				"specular" : { type: "c", value: new THREE.Color( 0x111111 ) },
+				"shininess": { type: "f", value: 30 }
+			}
+		] ),
+    	vertexShader: THREE.ShaderLib.phong.vertexShader,
+    	fragmentShader: THREE.ShaderLib.phong.fragmentShader,
+        lights: true
     });
 
     // Note: this loadedObject is a container for an Object3D which is the one that actually holds the mesh!
@@ -172,11 +191,11 @@ function onDocumentMouseDown( event ) {
 /* Creates some lights and adds them to the scene. */
 function lights() {
 
-    var ambientLight = new THREE.AmbientLight( 0xffffff );
-    scene.add( ambientLight );
+    // var ambientLight = new THREE.AmbientLight( 0xffffff );
+    // scene.add( ambientLight );
 
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
-    directionalLight.position.set( 0, 1, 1 );
+    directionalLight.position.set( 1, 1, 1 );
     scene.add( directionalLight );
 
 }
@@ -263,6 +282,8 @@ function create3DObject( obj_url, obj_name, obj_material ) {
     return objContainer;
 
 }
+
+
 
 
 /* This recursively animates the scene using the awesome requestAnimationFrame. */
