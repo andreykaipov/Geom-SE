@@ -17,6 +17,7 @@
 
     <!-- Custom styles for this page. -->
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/codemirror.css">
 </head>
 
 <body id="graphicsContainer">
@@ -37,16 +38,16 @@
         </ul>
     </div>
 
-    <!-- <script id="vertexShader" type="x-shader/x-vertex">
-        void main() {
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    </script>
-    <script id="fragmentShader" type="x-shader/x-fragment">
-        void main(void) {
-            gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
-        }
-    </script> -->
+    <!-- CODEMIRROR AREA -->
+    <div id="codeMirror">
+        <div id="dragbar"><h1>(Drag) Fragment Shader Source</h1></div>
+        <textarea id="fragSource" class="CodeMirror">
+            <!--
+                //FRAGMENT SHADER SOURCE
+                
+            -->
+        </textarea>
+    </div>
 
     <!-- jQuery. It's used a couple times... -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
@@ -59,6 +60,7 @@
     <script src="../../js-libraries/THREEx.KeyboardState.js"></script> <!-- For keyboard camera controls. -->
     <script src="../../js-libraries/dat.gui.min.js"></script>   <!-- For fancy GUI sliders. -->
     <script src="../../js-libraries/Projector.js"></script>  <!-- For raycaster to select objects. -->
+    <script src="js/dragResize.js"></script>           <!-- Draggable Div Resize -->
 
     <!-- CodeMirror -->
     <script src="https://rawgit.com/codemirror/CodeMirror/master/lib/codemirror.js"></script>

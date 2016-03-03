@@ -76,8 +76,52 @@ function init() {
     // Event listeners for raycaster object selection.
     document.addEventListener( 'mousedown', onDocumentMouseDown, false );
     document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+
+    var fragSource = document.getElementById('fragSource');
+fragSource.value = THREE.ShaderLib.phong.fragmentShader;
+FRAGCODE = CodeMirror.fromTextArea(fragSource,
+                                     {
+                                       lineNumbers: true,
+                                       matchBrackets: true,
+                                       indentWithTabs: true,
+                                       tabSize: 8,
+                                       indentUnit: 8
+                                       ,mode: "text/x-glsl"
+                                       ,onChange: updateCustomFrag
+                                     });
 }
 
+
+
+function updateCustomFrag()
+{
+    var updatedObjectMaterial = new THREE.ShaderMaterial({
+        uniforms: THREE.UniformsUtils.merge( [
+            THREE.UniformsLib[ "common" ],
+            THREE.UniformsLib[ "aomap" ],
+            THREE.UniformsLib[ "lightmap" ],
+            THREE.UniformsLib[ "emissivemap" ],
+            THREE.UniformsLib[ "bumpmap" ],
+            THREE.UniformsLib[ "normalmap" ],
+            THREE.UniformsLib[ "displacementmap" ],
+            THREE.UniformsLib[ "fog" ],
+            THREE.UniformsLib[ "ambient" ],
+            THREE.UniformsLib[ "lights" ],
+            {
+                "diffuse": { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
+                "emissive" : { type: "c", value: new THREE.Color( 0x000000 ) },
+                "specular" : { type: "c", value: new THREE.Color( 0x111111 ) },
+                "shininess": { type: "f", value: 30 }
+            }
+        ] ),
+        vertexShader: THREE.ShaderLib.phong.vertexShader,
+        fragmentShader: (FRAGCODE)?FRAGCODE.getValue():fragSource.value,
+        lights: true
+        });
+        
+        selectedObjectMaterial = updatedObjectMaterial;
+        selectedObjectMaterial.needsUpdate = true;
+}
 
 // Client-side upload, and triangulate to temp file. JS does not allow full path so we create a temporary path.
 // See http://stackoverflow.com/a/24818245/4085283, and http://stackoverflow.com/a/21016088/4085283.
@@ -107,7 +151,7 @@ function loadObject() {
 			}
 		] ),
     	vertexShader: THREE.ShaderLib.phong.vertexShader,
-    	fragmentShader: THREE.ShaderLib.phong.fragmentShader,
+    	fragmentShader: (FRAGCODE)?FRAGCODE.getValue():fragSource.value,
         lights: true
     });
 
@@ -300,6 +344,11 @@ function animate() {
     for ( var i = 0; i < scene.children.length; i++ )
         if ( scene.children[i] instanceof THREE.TransformControls )
             keyboardUpdateTransformControls( scene.children[i] );
+
+    if (selectedObjectMaterial) {
+        selectedObjectMaterial.fragmentShader = (FRAGCODE)?FRAGCODE.getValue():fragSource.value;
+        selectedObjectMaterial.needsUpdate = true;
+    }
 
 }
 

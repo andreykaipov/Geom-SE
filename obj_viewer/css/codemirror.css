@@ -1,0 +1,32 @@
+.CodeMirror {
+	height: 100%;
+	width: 100%;
+}
+
+#codeMirror {
+	position: absolute;
+	bottom: 0;
+	height: 4%;
+	width: 100%;
+}
+
+#dragbar{
+   background-color:black;
+   height: 16px;
+   width: 100%;
+   cursor: row-resize;
+   text-align: center;
+}
+
+#dragbar h1 {
+	color: white;
+	font-size: 12px;
+}
+#ghostbar{
+    width:100%;
+    background-color:#000;
+    opacity:0.5;
+    position:absolute;
+    cursor: col-resize;
+    z-index:999
+}
