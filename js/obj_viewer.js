@@ -31,8 +31,9 @@ var scene, camera, renderer, mouseCameraControls, keyboard;
 var raycaster, mouse, loadedObjects = [], selectedObject;
 
 // We could probably remove this global variable, but it'd be rather messy.
-var selectedObjectMaterial = new THREE.Material;
-
+var selectedObjectMaterial;// = new THREE.ShaderMaterial();
+var shaderStatus;
+var textureLoader = new THREE.TextureLoader();
 
 /* Initializes our scene, camera, renderer, and controls. */
 function init() {
@@ -78,49 +79,43 @@ function init() {
     document.addEventListener( 'touchstart', onDocumentTouchStart, false );
 
     var fragSource = document.getElementById('fragSource');
-fragSource.value = THREE.ShaderLib.phong.fragmentShader;
-FRAGCODE = CodeMirror.fromTextArea(fragSource,
-                                     {
-                                       lineNumbers: true,
-                                       matchBrackets: true,
-                                       indentWithTabs: true,
-                                       tabSize: 8,
-                                       indentUnit: 8
-                                       ,mode: "text/x-glsl"
-                                       ,onChange: updateCustomFrag
-                                     });
+    fragSource.value = THREE.ShaderLib.phong.fragmentShader;
+    var vertSource = document.getElementById('vertSource');
+    vertSource.value = THREE.ShaderLib.phong.vertexShader;
+    FRAGCODE = CodeMirror.fromTextArea(fragSource,
+                                         {
+                                           lineNumbers: true,
+                                           matchBrackets: true,
+                                           indentWithTabs: true,
+                                           tabSize: 8,
+                                           indentUnit: 8
+                                           ,mode: "text/x-glsl"
+                                         });
+    VERTCODE = CodeMirror.fromTextArea(vertSource,
+                                         {
+                                           lineNumbers: true,
+                                           matchBrackets: true,
+                                           indentWithTabs: true,
+                                           tabSize: 8,
+                                           indentUnit: 8
+                                           ,mode: "text/x-glsl"
+                                         });
+
+    gl = renderer.getContext();
+
 }
 
 
 
-function updateCustomFrag()
+function updateCustomShader()
 {
-    var updatedObjectMaterial = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.merge( [
-            THREE.UniformsLib[ "common" ],
-            THREE.UniformsLib[ "aomap" ],
-            THREE.UniformsLib[ "lightmap" ],
-            THREE.UniformsLib[ "emissivemap" ],
-            THREE.UniformsLib[ "bumpmap" ],
-            THREE.UniformsLib[ "normalmap" ],
-            THREE.UniformsLib[ "displacementmap" ],
-            THREE.UniformsLib[ "fog" ],
-            THREE.UniformsLib[ "ambient" ],
-            THREE.UniformsLib[ "lights" ],
-            {
-                "diffuse": { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
-                "emissive" : { type: "c", value: new THREE.Color( 0x000000 ) },
-                "specular" : { type: "c", value: new THREE.Color( 0x111111 ) },
-                "shininess": { type: "f", value: 30 }
-            }
-        ] ),
-        vertexShader: THREE.ShaderLib.phong.vertexShader,
-        fragmentShader: (FRAGCODE)?FRAGCODE.getValue():fragSource.value,
-        lights: true
-        });
-        
-        selectedObjectMaterial = updatedObjectMaterial;
-        selectedObjectMaterial.needsUpdate = true;
+
+    selectedObjectMaterial.vertexShader = VERTCODE.getValue();
+    selectedObjectMaterial.fragmentShader = FRAGCODE.getValue();   
+    selectedObjectMaterial.needsUpdate = true;
+
+    selectedObjectMaterial.uniforms.texture1.value.needsUpdate = true;
+    selectedObjectMaterial.uniforms.texture2.value.needsUpdate = true;
 }
 
 // Client-side upload, and triangulate to temp file. JS does not allow full path so we create a temporary path.
@@ -144,16 +139,24 @@ function loadObject() {
 			THREE.UniformsLib[ "ambient" ],
 			THREE.UniformsLib[ "lights" ],
 			{
-                "diffuse": { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
-				"emissive" : { type: "c", value: new THREE.Color( 0x000000 ) },
-				"specular" : { type: "c", value: new THREE.Color( 0x111111 ) },
-				"shininess": { type: "f", value: 30 }
+                diffuse: { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
+				emissive : { type: "c", value: new THREE.Color( 0x000000 ) },
+				specular : { type: "c", value: new THREE.Color( 0x111111 ) },
+				shininess: { type: "f", value: 30 },
+                fogDensity: { type: "f", value: 0.45 },
+                fogColor: { type: "v3", value: new THREE.Vector3( 0, 0, 0 ) },
+                time: { type: "f", value: 1.0 },
+                resolution: { type: "v2", value: new THREE.Vector2() },
+                uvScale: { type: "v2", value: new THREE.Vector2( 3.0, 1.0 ) },
+                texture1: { type: "t", value: textureLoader.load( "http://threejs.org/examples/textures/lava/cloud.png" ) },
+                texture2: { type: "t", value: textureLoader.load( "http://threejs.org/examples/textures/lava/lavatile.jpg" ) }
 			}
 		] ),
-    	vertexShader: THREE.ShaderLib.phong.vertexShader,
-    	fragmentShader: (FRAGCODE)?FRAGCODE.getValue():fragSource.value,
+    	vertexShader: VERTCODE.getValue(),
+    	fragmentShader: FRAGCODE.getValue(),
         lights: true
     });
+
 
     // Note: this loadedObject is a container for an Object3D which is the one that actually holds the mesh!
     var loadedObject = create3DObject( filePath, file.name, loadedObjectMaterial );
@@ -186,6 +189,12 @@ function loadObject() {
     // Make the most recently loaded object the selected object.
     selectedObject = loadedObject;
     selectedObjectMaterial = loadedObjectMaterial;
+
+    selectedObjectMaterial.uniforms.texture1.value.wrapS = selectedObjectMaterial.uniforms.texture1.value.wrapT = THREE.RepeatWrapping;
+    selectedObjectMaterial.uniforms.texture2.value.wrapS = selectedObjectMaterial.uniforms.texture2.value.wrapT = THREE.RepeatWrapping;
+
+    FRAGCODE.on("change", updateCustomShader);
+    VERTCODE.on("change", updateCustomShader);
 
 }
 
@@ -344,11 +353,6 @@ function animate() {
     for ( var i = 0; i < scene.children.length; i++ )
         if ( scene.children[i] instanceof THREE.TransformControls )
             keyboardUpdateTransformControls( scene.children[i] );
-
-    if (selectedObjectMaterial) {
-        selectedObjectMaterial.fragmentShader = (FRAGCODE)?FRAGCODE.getValue():fragSource.value;
-        selectedObjectMaterial.needsUpdate = true;
-    }
 
 }
 
