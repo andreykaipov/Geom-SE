@@ -20,8 +20,7 @@
     <link rel="stylesheet" href="css/codemirror.css">
 </head>
 
-<body id="graphicsContainer">
-
+<body>
     <div class="sidebar">
         <input type="file" id="i_file">
         <ul>
@@ -37,6 +36,8 @@
             <li id="genus"></li>
         </ul>
     </div>
+
+    <div id="graphicsContainer" tabindex="1"></div>
 
     <!-- CODEMIRROR AREA -->
     <div id="codeMirror">
@@ -55,43 +56,40 @@
         </textarea>
     </div>
 
-
     <!-- jQuery. It's used a couple times... -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 
     <!-- Core Three.js library plus extras. -->
-    <script src="../js-libraries/three.js"></script>
-    <script src="../js-libraries/OBJLoader.js"></script>     <!-- For actually loading .obj files -->
-    <script src="../js-libraries/TransformControls.js"></script> <!-- For mouse object controls. -->
-    <script src="../js-libraries/OrbitControls.js"></script> <!-- For mouse camera controls. -->
-    <script src="../js-libraries/THREEx.KeyboardState.js"></script> <!-- For keyboard camera controls. -->
-    <script src="../js-libraries/dat.gui.min.js"></script>   <!-- For fancy GUI sliders. -->
-    <script src="../js-libraries/Projector.js"></script>  <!-- For raycaster to select objects. -->
-    <script src="js/dragResize.js"></script>           <!-- Draggable Div Resize -->
-
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r74/three.js"></script>
+    <script src="//ocelot.aul.fiu.edu/~akaip002/js-libraries/OBJLoader.js"></script>     <!-- For actually loading .obj files -->
+    <script src="//ocelot.aul.fiu.edu/~akaip002/js-libraries/TransformControls.js"></script> <!-- For mouse object controls. -->
+    <script src="//ocelot.aul.fiu.edu/~akaip002/js-libraries/OrbitControls.js"></script> <!-- For mouse camera controls. -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.js"></script>   <!-- For fancy GUI sliders. -->
+    <script src="//ocelot.aul.fiu.edu/~akaip002/js-libraries/Projector.js"></script>  <!-- For raycaster to select objects. -->
     <!-- CodeMirror -->
-    <script src="https://rawgit.com/codemirror/CodeMirror/master/lib/codemirror.js"></script>
-    <script src="https://rawgit.com/codemirror/CodeMirror/master/mode/javascript/javascript.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/codemirror/5.12.0/codemirror.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/codemirror/5.12.0/mode/javascript/javascript.js"></script>
 
-    <!-- Some CSS to make the gui text larger. -->
-    <style>
-    .dg {
-        color: #fff;
-        font-size: 14px;
-        text-shadow: none !important;
-    }
-
-    .dg li:not(.folder) {
-        /*background: rgba(0, 0, 0, 1); !! transparency of gui makes the folders buggy when closed. */
-        border-bottom: 1px solid #ddd;
-    }
-    </style>
-
-    <!-- This code is the actual assignment. -->
+    <script src="js/dragResize.js"></script>           <!-- Draggable Div Resize -->
     <script src="js/triangulate.js"></script>   <!-- Triangulate script -->
     <script src="js/xyzAxes.js"></script>       <!-- Displays debug axes -->
     <script src="js/obj_viewer.js"></script>    <!-- Displays the model -->
+    <script src="js/obj_viewer_keycontrols.js"></script> <!-- keyboard events for obj viewer -->
     <script src="js/gui.js"></script>           <!-- Make the GUI functional -->
+
+    <!-- The following css makes the gui text larger. Has to be after the dat.gui js file. -->
+    <style>
+        .dg {
+            color: #fff;
+            font-size: 14px;
+            text-shadow: none !important;
+        }
+
+        .dg li:not(.folder) {
+            /*background: rgba(0, 0, 0, 1); !! transparency of gui makes the folders buggy when closed. */
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
 
     <!-- Google analytics. -->
     <script>

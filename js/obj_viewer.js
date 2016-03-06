@@ -12,37 +12,36 @@ to do:
 - add standard geometries (cubes, spheres, etc.)
 */
 
-init();
-lights();
-animate();
-
-
 // The scene is where everything is placed.
 // The camera is what looks at the scene.
 // The renderer will display our beautifully crafted scene.
 // The mouseCameraControls allow us to move the camera around the scene with the mouse.
-// The keyboard is for hard-coding the keyboard camera controls.
-var scene, camera, renderer, mouseCameraControls, keyboard;
+// The keys array is for detecting which keys have been pressed so we can get smooth camera control.
+var scene, camera, renderer, mouseCameraControls, keysPressedForCamera = [];
 
 // The raycaster will take care of selecting objects.
 // The mouse will be modeled as a 2D point on the user's screen.
 // The loadedObjects array holds all of our loaded objects that our raycaster can pick from.
 // The selectedObject is the currently selected object..
-var raycaster, mouse, loadedObjects = [], selectedObject;
+// The selectedObjectControls is the currently selected object's transform controls.
+var raycaster, mouse, loadedObjects = [], selectedObject, selectedObjectControls;
 
 // We could probably remove this global variable, but it'd be rather messy.
-var selectedObjectMaterial;// = new THREE.ShaderMaterial();
+var selectedObjectMaterial;
 var shaderStatus;
 var textureLoader = new THREE.TextureLoader();
 
+
+init();
+lights();
+animate();
+
+
 /* Initializes our scene, camera, renderer, and controls. */
 function init() {
-    clock = new THREE.Clock();
-
 
     // Scene.
     scene = new THREE.Scene();
-
     // Camera.
     var canvasWidth = window.innerWidth;
     var canvasHeight = window.innerHeight;
@@ -50,23 +49,26 @@ function init() {
     var verticalFOV = 80; // in degrees
     var nearPlane = 0.1;
     var farPlane = 8000;
-
     camera = new THREE.PerspectiveCamera( verticalFOV, aspectRatio, nearPlane, farPlane );
     camera.position.set( 0, 0, 5 );
     scene.add( camera );
 
     // The renderer provides a place for ThreeJS to draw our scene.
-    // Specifically, it provides a <canvas> element which we add to our HTML document.
+    // Specifically, it provides a <canvas> element we can add to our HTML document.
     renderer = new THREE.WebGLRenderer( { alpha: true } );
     renderer.setClearColor( 0x010101, 0.1 );
-    document.body.appendChild( renderer.domElement );
+    document.getElementById("graphicsContainer").appendChild( renderer.domElement );
     renderer.setSize( canvasWidth, canvasHeight );
 
+    // These controls allow us to move around the canvas with our mouse.
+    // The keyboard controls are taken care of separately as event listeners.
     mouseCameraControls = new THREE.OrbitControls( camera, renderer.domElement );
-    keyboard = new THREEx.KeyboardState();
 
+    // Take care of object selection.
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
+    renderer.domElement.addEventListener( 'mousedown', onCanvasMouseDown, false );
+    renderer.domElement.addEventListener( 'touchstart', onCanvasTouchStart, false );
 
     // Adds debug axes centered at (0,0,0). Remember: xyz ~ rgb. Solid is positive, dashed is negative.
     createAxes( 100 );
@@ -74,10 +76,7 @@ function init() {
     // Event listener for obj file uploading.
     document.getElementById("i_file").addEventListener( 'change', loadObject );
 
-    // Event listeners for raycaster object selection.
-    document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-    document.addEventListener( 'touchstart', onDocumentTouchStart, false );
-
+    /* SHADER STUFF */
     var fragSource = document.getElementById('fragSource');
     fragSource.value = THREE.ShaderLib.phong.fragmentShader;
     var vertSource = document.getElementById('vertSource');
@@ -105,13 +104,10 @@ function init() {
 
 }
 
-
-
 function updateCustomShader()
 {
-
     selectedObjectMaterial.vertexShader = VERTCODE.getValue();
-    selectedObjectMaterial.fragmentShader = FRAGCODE.getValue();   
+    selectedObjectMaterial.fragmentShader = FRAGCODE.getValue();
     selectedObjectMaterial.needsUpdate = true;
 
     selectedObjectMaterial.uniforms.texture1.value.needsUpdate = true;
@@ -122,27 +118,24 @@ function updateCustomShader()
 // See http://stackoverflow.com/a/24818245/4085283, and http://stackoverflow.com/a/21016088/4085283.
 function loadObject() {
 
-    var file = event.target.files[0];
-    var filePath = window.URL.createObjectURL( file );
-
     // See https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderLib.js.
     var loadedObjectMaterial = new THREE.ShaderMaterial({
         uniforms: THREE.UniformsUtils.merge( [
-			THREE.UniformsLib[ "common" ],
-			THREE.UniformsLib[ "aomap" ],
-			THREE.UniformsLib[ "lightmap" ],
-			THREE.UniformsLib[ "emissivemap" ],
-			THREE.UniformsLib[ "bumpmap" ],
-			THREE.UniformsLib[ "normalmap" ],
-			THREE.UniformsLib[ "displacementmap" ],
-			THREE.UniformsLib[ "fog" ],
-			THREE.UniformsLib[ "ambient" ],
-			THREE.UniformsLib[ "lights" ],
-			{
+            THREE.UniformsLib[ "common" ],
+            THREE.UniformsLib[ "aomap" ],
+            THREE.UniformsLib[ "lightmap" ],
+            THREE.UniformsLib[ "emissivemap" ],
+            THREE.UniformsLib[ "bumpmap" ],
+            THREE.UniformsLib[ "normalmap" ],
+            THREE.UniformsLib[ "displacementmap" ],
+            THREE.UniformsLib[ "fog" ],
+            THREE.UniformsLib[ "ambient" ],
+            THREE.UniformsLib[ "lights" ],
+            {
                 diffuse: { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
-				emissive : { type: "c", value: new THREE.Color( 0x000000 ) },
-				specular : { type: "c", value: new THREE.Color( 0x111111 ) },
-				shininess: { type: "f", value: 30 },
+                emissive : { type: "c", value: new THREE.Color( 0x000000 ) },
+                specular : { type: "c", value: new THREE.Color( 0x111111 ) },
+                shininess: { type: "f", value: 30 },
                 fogDensity: { type: "f", value: 0.45 },
                 fogColor: { type: "v3", value: new THREE.Vector3( 0, 0, 0 ) },
                 time: { type: "f", value: 1.0 },
@@ -150,65 +143,86 @@ function loadObject() {
                 uvScale: { type: "v2", value: new THREE.Vector2( 3.0, 1.0 ) },
                 texture1: { type: "t", value: textureLoader.load( "http://threejs.org/examples/textures/lava/cloud.png" ) },
                 texture2: { type: "t", value: textureLoader.load( "http://threejs.org/examples/textures/lava/lavatile.jpg" ) }
-			}
-		] ),
-    	vertexShader: VERTCODE.getValue(),
-    	fragmentShader: FRAGCODE.getValue(),
+            }
+        ] ),
+        vertexShader: VERTCODE.getValue(),
+        fragmentShader: FRAGCODE.getValue(),
         lights: true
     });
 
+    // r74 OBJLoader actually recognizes named objects and polygon groups in obj files.
+    // This is good if the user wants to assign different materials to differnet parts of the obj file.
+    // This is troublesome if we want to normalize the 3D Object, because it would mean we have to merge
+    // all the geometries together somehow and merge as one. So, for now, we'll just strip ot everything
+    // but the vertices and faces from the object file to assure that the object file is loaded in one geometry.
+    // Since loading is asynchronous (?), everything else has to go into the ajax success call.
+    // I'm thinking we might as well just triangulate on upload if we're reading it in the beginning though...?
+    var file = event.target.files[0];
+    var filePath = window.URL.createObjectURL( file );
+    $.ajax({
+        url : filePath,
+        success : function( fileAsString ) {
 
-    // Note: this loadedObject is a container for an Object3D which is the one that actually holds the mesh!
-    var loadedObject = create3DObject( filePath, file.name, loadedObjectMaterial );
+            var lines = fileAsString.split(/[\r\n]/);
+            bareLines = lines.filter(function(line) {
+                return (line[0] === 'v' && line[1] === ' ') ||
+                       (line[0] === 'f' && line[1] === ' ')
+            });
+            var bareFile = new Blob( [ bareLines.join('\n') ], { type: "text/plain" } );
+            var bareFilePath = window.URL.createObjectURL( bareFile );
 
-    loadedObject.name = file.name;
+            console.log( "File was read and loaded successfully." +
+                        "\nName: " + file.name +
+                        "\nSize: " + file.size + " bytes" );
 
-    // Add the file path as an attribute to the object.
-    // We'll need it again if the user wants to triangulate. See gui.js.
-    loadedObject.userData.filePath = filePath;
+            // Note: this loadedObject is a container for an Object3D which is the one that actually holds the mesh!
+            var loadedObject = create3DObject( bareFilePath, file.name, loadedObjectMaterial );
+            loadedObject.name = file.name;
+            // Add the file path as an attribute to the object.
+            // We'll need it again if the user wants to triangulate. See gui.js.
+            loadedObject.userData.filePath = filePath;
 
-    // Add the loadedObject to the array for raycaster selection.
-    loadedObjects.push( loadedObject );
+            // Add the loadedObject to the array for raycaster selection.
+            loadedObjects.push( loadedObject );
 
-    console.log( "File was loaded successfully." +
-    "\nName: " + file.name +
-    "\nSize: " + file.size + " bytes" );
+            scene.add( loadedObject );
 
-    scene.add( loadedObject );
+            // Create controls for each loaded object, attach them to the loaded object,
+            // and add them to the scene so we can actually see them.
+            var objectControls = new THREE.TransformControls( camera, renderer.domElement );
+            objectControls.addEventListener( 'change', render );
+            objectControls.attach( loadedObject );
+            scene.add( objectControls );
 
-    // Create controls for each loaded object, attach them to the loaded object,
-    // and add them to the scene so we can actually see them.
-    var objectControls = new THREE.TransformControls( camera, renderer.domElement );
-    objectControls.addEventListener( 'change', render );
-    objectControls.attach( loadedObject );
-    scene.add( objectControls );
+            // Associate the objectControls with the loadedObject. See gui.js in triangulation button.
+            objectControls.name = "Controller for " + loadedObject.id;
 
-    // Associate the objectControls with the loadedObject. See gui.js in triangulation button.
-    objectControls.name = "Controller for " + loadedObject.id;
+            // Make the most recently loaded object the selected object.
+            selectedObject = loadedObject;
+            selectedObjectMaterial = loadedObjectMaterial;
+            selectedObjectControls = objectControls;
+            showOnly( selectedObjectControls );
 
-    // Make the most recently loaded object the selected object.
-    selectedObject = loadedObject;
-    selectedObjectMaterial = loadedObjectMaterial;
+            selectedObjectMaterial.uniforms.texture1.value.wrapS = selectedObjectMaterial.uniforms.texture1.value.wrapT = THREE.RepeatWrapping;
+            selectedObjectMaterial.uniforms.texture2.value.wrapS = selectedObjectMaterial.uniforms.texture2.value.wrapT = THREE.RepeatWrapping;
 
-    selectedObjectMaterial.uniforms.texture1.value.wrapS = selectedObjectMaterial.uniforms.texture1.value.wrapT = THREE.RepeatWrapping;
-    selectedObjectMaterial.uniforms.texture2.value.wrapS = selectedObjectMaterial.uniforms.texture2.value.wrapT = THREE.RepeatWrapping;
+            FRAGCODE.on("change", updateCustomShader);
+            VERTCODE.on("change", updateCustomShader);
 
-    FRAGCODE.on("change", updateCustomShader);
-    VERTCODE.on("change", updateCustomShader);
+        } // end ajax success
+    });
 
 }
 
 /* The following two functions take care of our raycaster selecting objects. For reference,
    see the example http://mrdoob.github.io/three.js/examples/canvas_interactive_cubes.html */
-function onDocumentTouchStart( event ) {
-
+function onCanvasTouchStart( event ) {
     event.clientX = event.touches[0].clientX;
     event.clientY = event.touches[0].clientY;
-    onDocumentMouseDown( event );
-
+    onCanvasMouseDown( event );
 }
 
-function onDocumentMouseDown( event ) {
+function onCanvasMouseDown( event ) {
 
     mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
@@ -224,6 +238,8 @@ function onDocumentMouseDown( event ) {
         // The selected object is the objContainer for the object the intersected mesh belongs to!
         selectedObject = intersects[0].object.parent.parent;
         selectedObjectMaterial = selectedObject.children[0].children[0].material;
+        selectedObjectControls = scene.getObjectByName("Controller for " + selectedObject.id);
+        showOnly( selectedObjectControls );
 
         console.log("You selected " + selectedObject.name + ".");
 
@@ -336,119 +352,21 @@ function create3DObject( obj_url, obj_name, obj_material ) {
 
 }
 
-
-
-
 /* This recursively animates the scene using the awesome requestAnimationFrame. */
 function animate() {
     // Limit rendering to 30 fps, equivalent to 1000 / 30 = 33.33 ms per frame.
-    setTimeout( function() {
+    // setTimeout( function() {
         requestAnimationFrame( animate );
-    }, 1000 / 30 ); // frame count goes to the denominator.
+    // }, 1000 / 30 ); // frame count goes to the denominator.
 
     render();
-    keyboardUpdateCamera();
-
-    // Loop through scene and update each of the transform controls for each object.
-    for ( var i = 0; i < scene.children.length; i++ )
-        if ( scene.children[i] instanceof THREE.TransformControls )
-            keyboardUpdateTransformControls( scene.children[i] );
 
 }
-
 
 /* This just renders the scene with respect to a camera once. */
 function render() {
     renderer.render( scene, camera );
 }
-
-
-/* These are the keyboard controls. They reference the mouse camera controls. */
-function keyboardUpdateCamera() {
-
-    // Get the vector representing the direction in which the camera is looking.
-    var dirVector = camera.getWorldDirection().multiplyScalar(0.10);
-
-    if ( keyboard.pressed("W") ) {
-        camera.position.add( dirVector );
-        camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
-    }
-    else if ( keyboard.pressed("S") ) {
-        camera.position.sub( dirVector );
-        camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
-    }
-    else if ( keyboard.pressed("A") ) {
-        camera.position.sub( dirVector.cross( new THREE.Vector3( 0, 1, 0) ) );
-        camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
-    }
-    else if ( keyboard.pressed("D") ) {
-        camera.position.add( dirVector.cross( new THREE.Vector3( 0, 1, 0) ) );
-        camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
-    }
-    else if ( keyboard.pressed("F") ) {
-        camera.position.sub( new THREE.Vector3(0, 0.1, 0) );
-        // camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
-    }
-    else if ( keyboard.pressed("R") ) {
-        camera.position.add( new THREE.Vector3(0, 0.1, 0) );
-        // camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
-    }
-    else if ( keyboard.pressed("Z") )
-    {
-        camera.position.set( 0, 0, 5 );
-        mouseCameraControls.target.set( 0, 0, 0 );
-        camera.lookAt( 0, 0, 0 );
-    }
-    camera.updateProjectionMatrix();
-
-}
-
-
-/* These are the keyboard options that allow us to update the transform controls of an object. */
-function keyboardUpdateTransformControls( objectControls ) {
-
-    if ( keyboard.pressed("0") ) {
-        objectControls.setSpace( objectControls.space === "local" ? "world" : "local" );
-    }
-    else if ( keyboard.pressed("1") ) {
-        objectControls.setMode( "translate" );
-    }
-    else if ( keyboard.pressed("2") ) {
-        objectControls.setMode( "rotate" );
-    }
-    else if ( keyboard.pressed("3") ) {
-        objectControls.setMode( "scale" );
-    }
-    else if ( keyboard.pressed("plus") || keyboard.pressed("numpad_plus") ) {
-        objectControls.setSize( objectControls.size + 0.1 );
-    }
-    else if ( keyboard.pressed("minus") || keyboard.pressed("numpad_minus") ) {
-        objectControls.setSize( Math.max( objectControls.size - 0.1, 0.1 ) );
-    }
-
-    objectControls.update();
-
-}
-
-
-/* If CTRL is pressed, then the selectedObject's transformControls toggle between snap-to-grid and smooth. */
-window.addEventListener( 'keydown', function ( event ) {
-
-    if ( event.keyCode == 17 ) {
-
-        var objectControls = scene.getObjectByName("Controller for " + selectedObject.id);
-        if ( objectControls.translationSnap == null && objectControls.rotationSnap == null) {
-            objectControls.setTranslationSnap( 1 );
-            objectControls.setRotationSnap( THREE.Math.degToRad(15) );
-        }
-        else {
-            objectControls.setTranslationSnap( null );
-            objectControls.setRotationSnap( null );
-        }
-
-    }
-
-});
 
 
 /* Resize canvas when window is resized. */
@@ -459,3 +377,17 @@ window.addEventListener( "resize", function() {
     camera.aspect = canvasWidth / canvasHeight;
     camera.updateProjectionMatrix();
 });
+
+function showOnly( objectControls ) {
+    for ( var i = 0; i < scene.children.length; i++ ) {
+        if ( scene.children[i] == objectControls ) {
+            objectControls.visible = true;
+            if (objectControls.size == 0.000001)
+                objectControls.size =  1;
+        }
+        else if ( scene.children[i] instanceof THREE.TransformControls ) {
+            scene.children[i].visible = false;
+            scene.children[i].size = 0.000001;
+        }
+    }
+}
