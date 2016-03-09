@@ -29,7 +29,15 @@ var raycaster, mouse, loadedObjects = [], selectedObject, selectedObjectControls
 // We could probably remove this global variable, but it'd be rather messy.
 var selectedObjectMaterial;
 var shaderStatus;
+
+// Texture Vars
 var textureLoader = new THREE.TextureLoader();
+var loadedTextureArray = new Array(0);
+// TO DO: Get these from a file uploader tool in the GUI
+var textureURLArray = ["http://threejs.org/examples/textures/lava/cloud.png", 
+						"http://threejs.org/examples/textures/lava/lavatile.jpg"];
+var texturesLoaded = false;
+
 
 
 init();
@@ -74,13 +82,13 @@ function init() {
     createAxes( 100 );
 
     // Event listener for obj file uploading.
-    document.getElementById("i_file").addEventListener( 'change', loadObject );
+    document.getElementById("i_file").addEventListener( 'change', asyncLoadObject );
 
     /* SHADER STUFF */
     var fragSource = document.getElementById('fragSource');
-    fragSource.value = THREE.ShaderLib.phong.fragmentShader;
+    //fragSource.value = THREE.ShaderLib.phong.fragmentShader;
     var vertSource = document.getElementById('vertSource');
-    vertSource.value = THREE.ShaderLib.phong.vertexShader;
+    //vertSource.value = THREE.ShaderLib.phong.vertexShader;
     FRAGCODE = CodeMirror.fromTextArea(fragSource,
                                          {
                                            lineNumbers: true,
@@ -109,108 +117,154 @@ function updateCustomShader()
     selectedObjectMaterial.vertexShader = VERTCODE.getValue();
     selectedObjectMaterial.fragmentShader = FRAGCODE.getValue();
     selectedObjectMaterial.needsUpdate = true;
+}
 
-    selectedObjectMaterial.uniforms.texture1.value.needsUpdate = true;
-    selectedObjectMaterial.uniforms.texture2.value.needsUpdate = true;
+
+function loadTextures() {
+
+	// Texture loading is asynchronous
+	for(i = 0; i < textureURLArray.length; i++) {
+		
+		textureLoader.load( 
+		
+			// Load the texture
+			textureURLArray[i],
+
+			// texture load callback
+			function(texture) {
+				loadedTextureArray.push(texture);
+				
+				
+				//Check if all the textures have been loaded
+				if(loadedTextureArray.length == textureURLArray.length){
+					//DEBUG
+					console.log( 'loadTextures(): ' + loadedTextureArray.length + "/" + textureURLArray.length + " textures loaded" );
+	
+					for(j = 0; j < loadedTextureArray.length; j++)
+					{
+						console.log( '\tTexture' + (j+1) + ": " + loadedTextureArray[j].name + "\n");
+					}
+					
+					texturesLoaded = true;
+					
+				}
+			}, //End Load Callback
+			
+			// Function called when download progresses
+			function ( xhr ) {
+				console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+			},
+			
+			// Function called when download errors
+			function ( xhr ) {
+				console.log( 'An error happened while loading the textures' );
+			}
+		
+		); //End Texture Load
+	}
 }
 
 // Client-side upload, and triangulate to temp file. JS does not allow full path so we create a temporary path.
 // See http://stackoverflow.com/a/24818245/4085283, and http://stackoverflow.com/a/21016088/4085283.
-function loadObject() {
+function asyncLoadObject() { 
 
-    // See https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderLib.js.
-    var loadedObjectMaterial = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.merge( [
-            THREE.UniformsLib[ "common" ],
-            THREE.UniformsLib[ "aomap" ],
-            THREE.UniformsLib[ "lightmap" ],
-            THREE.UniformsLib[ "emissivemap" ],
-            THREE.UniformsLib[ "bumpmap" ],
-            THREE.UniformsLib[ "normalmap" ],
-            THREE.UniformsLib[ "displacementmap" ],
-            THREE.UniformsLib[ "fog" ],
-            THREE.UniformsLib[ "ambient" ],
-            THREE.UniformsLib[ "lights" ],
-            {
-                diffuse: { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
-                emissive : { type: "c", value: new THREE.Color( 0x000000 ) },
-                specular : { type: "c", value: new THREE.Color( 0x111111 ) },
-                shininess: { type: "f", value: 30 },
-                fogDensity: { type: "f", value: 0.45 },
-                fogColor: { type: "v3", value: new THREE.Vector3( 0, 0, 0 ) },
-                time: { type: "f", value: 1.0 },
-                resolution: { type: "v2", value: new THREE.Vector2() },
-                uvScale: { type: "v2", value: new THREE.Vector2( 3.0, 1.0 ) },
-                texture1: { type: "t", value: textureLoader.load( "http://threejs.org/examples/textures/lava/cloud.png" ) },
-                texture2: { type: "t", value: textureLoader.load( "http://threejs.org/examples/textures/lava/lavatile.jpg" ) }
-            }
-        ] ),
-        vertexShader: VERTCODE.getValue(),
-        fragmentShader: FRAGCODE.getValue(),
-        lights: true
-    });
+	loadTextures();
+	
 
-    // r74 OBJLoader actually recognizes named objects and polygon groups in obj files.
-    // This is good if the user wants to assign different materials to differnet parts of the obj file.
-    // This is troublesome if we want to normalize the 3D Object, because it would mean we have to merge
-    // all the geometries together somehow and merge as one. So, for now, we'll just strip ot everything
-    // but the vertices and faces from the object file to assure that the object file is loaded in one geometry.
-    // Since loading is asynchronous (?), everything else has to go into the ajax success call.
-    // I'm thinking we might as well just triangulate on upload if we're reading it in the beginning though...?
-    var file = event.target.files[0];
-    var filePath = window.URL.createObjectURL( file );
-    $.ajax({
-        url : filePath,
-        success : function( fileAsString ) {
+	
+	// See https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderLib.js.
+	var loadedObjectMaterial = new THREE.ShaderMaterial({
+		uniforms: THREE.UniformsUtils.merge( [
+			THREE.UniformsLib[ "common" ],
+			THREE.UniformsLib[ "aomap" ],
+			THREE.UniformsLib[ "lightmap" ],
+			THREE.UniformsLib[ "emissivemap" ],
+			THREE.UniformsLib[ "bumpmap" ],
+			THREE.UniformsLib[ "normalmap" ],
+			THREE.UniformsLib[ "displacementmap" ],
+			THREE.UniformsLib[ "fog" ],
+			THREE.UniformsLib[ "ambient" ],
+			THREE.UniformsLib[ "lights" ],
+			{
+				diffuse: { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
+				emissive : { type: "c", value: new THREE.Color( 0x000000 ) },
+				specular : { type: "c", value: new THREE.Color( 0x111111 ) },
+				shininess: { type: "f", value: 30 },
+				fogDensity: { type: "f", value: 0.45 },
+				fogColor: { type: "v3", value: new THREE.Vector3( 0, 0, 0 ) },
+				time: { type: "f", value: 1.0 },
+				resolution: { type: "v2", value: new THREE.Vector2() },
+				uvScale: { type: "v2", value: new THREE.Vector2( 3.0, 1.0 ) },
+				texture1: { type: "t", value: loadedTextureArray[0] },
+				texture2: { type: "t", value: loadedTextureArray[1] }
+			}
+		] ),
+		vertexShader: VERTCODE.getValue(),
+		fragmentShader: FRAGCODE.getValue(),
+		lights: true
+	});
 
-            var lines = fileAsString.split(/[\r\n]/);
-            bareLines = lines.filter(function(line) {
-                return (line[0] === 'v' && line[1] === ' ') ||
-                       (line[0] === 'f' && line[1] === ' ')
-            });
-            var bareFile = new Blob( [ bareLines.join('\n') ], { type: "text/plain" } );
-            var bareFilePath = window.URL.createObjectURL( bareFile );
+	// r74 OBJLoader actually recognizes named objects and polygon groups in obj files.
+	// This is good if the user wants to assign different materials to differnet parts of the obj file.
+	// This is troublesome if we want to normalize the 3D Object, because it would mean we have to merge
+	// all the geometries together somehow and merge as one. So, for now, we'll just strip ot everything
+	// but the vertices and faces from the object file to assure that the object file is loaded in one geometry.
+	// Since loading is asynchronous (?), everything else has to go into the ajax success call.
+	// I'm thinking we might as well just triangulate on upload if we're reading it in the beginning though...?
+	var file = event.target.files[0];
+	var filePath = window.URL.createObjectURL( file );
+	$.ajax({
+		url : filePath,
+		success : function( fileAsString ) {
 
-            console.log( "File was read and loaded successfully." +
-                        "\nName: " + file.name +
-                        "\nSize: " + file.size + " bytes" );
+			var lines = fileAsString.split(/[\r\n]/);
+			bareLines = lines.filter(function(line) {
+				return (line[0] === 'v' && line[1] === ' ') ||
+					   (line[0] === 'f' && line[1] === ' ')
+			});
+			var bareFile = new Blob( [ bareLines.join('\n') ], { type: "text/plain" } );
+			var bareFilePath = window.URL.createObjectURL( bareFile );
 
-            // Note: this loadedObject is a container for an Object3D which is the one that actually holds the mesh!
-            var loadedObject = create3DObject( bareFilePath, file.name, loadedObjectMaterial );
-            loadedObject.name = file.name;
-            // Add the file path as an attribute to the object.
-            // We'll need it again if the user wants to triangulate. See gui.js.
-            loadedObject.userData.filePath = filePath;
+			console.log( "File was read and loaded successfully." +
+						"\nName: " + file.name +
+						"\nSize: " + file.size + " bytes" );
 
-            // Add the loadedObject to the array for raycaster selection.
-            loadedObjects.push( loadedObject );
+			// Note: this loadedObject is a container for an Object3D which is the one that actually holds the mesh!
+			var loadedObject = create3DObject( bareFilePath, file.name, loadedObjectMaterial );
+			loadedObject.name = file.name;
+			// Add the file path as an attribute to the object.
+			// We'll need it again if the user wants to triangulate. See gui.js.
+			loadedObject.userData.filePath = filePath;
 
-            scene.add( loadedObject );
+			// Add the loadedObject to the array for raycaster selection.
+			loadedObjects.push( loadedObject );
 
-            // Create controls for each loaded object, attach them to the loaded object,
-            // and add them to the scene so we can actually see them.
-            var objectControls = new THREE.TransformControls( camera, renderer.domElement );
-            objectControls.addEventListener( 'change', render );
-            objectControls.attach( loadedObject );
-            scene.add( objectControls );
+			scene.add( loadedObject );
 
-            // Associate the objectControls with the loadedObject. See gui.js in triangulation button.
-            objectControls.name = "Controller for " + loadedObject.id;
+			// Create controls for each loaded object, attach them to the loaded object,
+			// and add them to the scene so we can actually see them.
+			var objectControls = new THREE.TransformControls( camera, renderer.domElement );
+			objectControls.addEventListener( 'change', render );
+			objectControls.attach( loadedObject );
+			scene.add( objectControls );
 
-            // Make the most recently loaded object the selected object.
-            selectedObject = loadedObject;
-            selectedObjectMaterial = loadedObjectMaterial;
-            selectedObjectControls = objectControls;
-            showOnly( selectedObjectControls );
+			// Associate the objectControls with the loadedObject. See gui.js in triangulation button.
+			objectControls.name = "Controller for " + loadedObject.id;
 
-            selectedObjectMaterial.uniforms.texture1.value.wrapS = selectedObjectMaterial.uniforms.texture1.value.wrapT = THREE.RepeatWrapping;
-            selectedObjectMaterial.uniforms.texture2.value.wrapS = selectedObjectMaterial.uniforms.texture2.value.wrapT = THREE.RepeatWrapping;
+			// Make the most recently loaded object the selected object.
+			selectedObject = loadedObject;
+			selectedObjectMaterial = loadedObjectMaterial;
+			selectedObjectControls = objectControls;
+			showOnly( selectedObjectControls );
 
-            FRAGCODE.on("change", updateCustomShader);
-            VERTCODE.on("change", updateCustomShader);
+			//selectedObjectMaterial.uniforms.texture1.value.wrapS = selectedObjectMaterial.uniforms.texture1.value.wrapT = THREE.RepeatWrapping;
+			//selectedObjectMaterial.uniforms.texture2.value.wrapS = selectedObjectMaterial.uniforms.texture2.value.wrapT = THREE.RepeatWrapping;
 
-        } // end ajax success
-    });
+			FRAGCODE.on("change", updateCustomShader);
+			VERTCODE.on("change", updateCustomShader);
+
+		} // end ajax success
+	});
 
 }
 
