@@ -24,7 +24,8 @@ var scene, camera, renderer, mouseCameraControls, keysPressedForCamera = [];
 // The loadedObjects array holds all of our loaded objects that our raycaster can pick from.
 // The selectedObject is the currently selected object..
 // The selectedObjectControls is the currently selected object's transform controls.
-var raycaster, mouse, loadedObjects = [], selectedObject, selectedObjectControls;
+var raycaster, mouse, selectedMesh, selectedObjectControls;
+var loadedMeshes = [];
 
 // We could probably remove this global variable, but it'd be rather messy.
 var selectedObjectMaterial;
@@ -34,10 +35,9 @@ var shaderStatus;
 var textureLoader = new THREE.TextureLoader();
 var loadedTextureArray = new Array(0);
 // TO DO: Get these from a file uploader tool in the GUI
-var textureURLArray = ["http://threejs.org/examples/textures/lava/cloud.png", 
+var textureURLArray = ["http://threejs.org/examples/textures/lava/cloud.png",
 						"http://threejs.org/examples/textures/lava/lavatile.jpg"];
 var texturesLoaded = false;
-
 
 
 init();
@@ -82,7 +82,7 @@ function init() {
     createAxes( 100 );
 
     // Event listener for obj file uploading.
-    document.getElementById("i_file").addEventListener( 'change', asyncLoadObject );
+    document.getElementById("i_file").addEventListener( 'change', add3DObject );
 
     /* SHADER STUFF */
     var fragSource = document.getElementById('fragSource');
@@ -124,85 +124,52 @@ function loadTextures() {
 
 	// Texture loading is asynchronous
 	for(i = 0; i < textureURLArray.length; i++) {
-		
-		textureLoader.load( 
-		
+
+		textureLoader.load(
+
 			// Load the texture
 			textureURLArray[i],
 
 			// texture load callback
 			function(texture) {
 				loadedTextureArray.push(texture);
-				
-				
+
+
 				//Check if all the textures have been loaded
 				if(loadedTextureArray.length == textureURLArray.length){
 					//DEBUG
 					console.log( 'loadTextures(): ' + loadedTextureArray.length + "/" + textureURLArray.length + " textures loaded" );
-	
+
 					for(j = 0; j < loadedTextureArray.length; j++)
 					{
 						console.log( '\tTexture' + (j+1) + ": " + loadedTextureArray[j].name + "\n");
 					}
-					
+
 					texturesLoaded = true;
-					
+
 				}
 			}, //End Load Callback
-			
+
 			// Function called when download progresses
 			function ( xhr ) {
 				console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
 			},
-			
+
 			// Function called when download errors
 			function ( xhr ) {
 				console.log( 'An error happened while loading the textures' );
 			}
-		
+
 		); //End Texture Load
 	}
 }
 
 // Client-side upload, and triangulate to temp file. JS does not allow full path so we create a temporary path.
 // See http://stackoverflow.com/a/24818245/4085283, and http://stackoverflow.com/a/21016088/4085283.
-function asyncLoadObject() { 
+function loadObject() {
 
-	loadTextures();
-	
-
-	
 	// See https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderLib.js.
-	var loadedObjectMaterial = new THREE.ShaderMaterial({
-		uniforms: THREE.UniformsUtils.merge( [
-			THREE.UniformsLib[ "common" ],
-			THREE.UniformsLib[ "aomap" ],
-			THREE.UniformsLib[ "lightmap" ],
-			THREE.UniformsLib[ "emissivemap" ],
-			THREE.UniformsLib[ "bumpmap" ],
-			THREE.UniformsLib[ "normalmap" ],
-			THREE.UniformsLib[ "displacementmap" ],
-			THREE.UniformsLib[ "fog" ],
-			THREE.UniformsLib[ "ambient" ],
-			THREE.UniformsLib[ "lights" ],
-			{
-				diffuse: { type:"c", value: new THREE.Color(Math.random() * 0xffffff) },
-				emissive : { type: "c", value: new THREE.Color( 0x000000 ) },
-				specular : { type: "c", value: new THREE.Color( 0x111111 ) },
-				shininess: { type: "f", value: 30 },
-				fogDensity: { type: "f", value: 0.45 },
-				fogColor: { type: "v3", value: new THREE.Vector3( 0, 0, 0 ) },
-				time: { type: "f", value: 1.0 },
-				resolution: { type: "v2", value: new THREE.Vector2() },
-				uvScale: { type: "v2", value: new THREE.Vector2( 3.0, 1.0 ) },
-				texture1: { type: "t", value: loadedTextureArray[0] },
-				texture2: { type: "t", value: loadedTextureArray[1] }
-			}
-		] ),
-		vertexShader: VERTCODE.getValue(),
-		fragmentShader: FRAGCODE.getValue(),
-		lights: true
-	});
+
 
 	// r74 OBJLoader actually recognizes named objects and polygon groups in obj files.
 	// This is good if the user wants to assign different materials to differnet parts of the obj file.
@@ -211,23 +178,7 @@ function asyncLoadObject() {
 	// but the vertices and faces from the object file to assure that the object file is loaded in one geometry.
 	// Since loading is asynchronous (?), everything else has to go into the ajax success call.
 	// I'm thinking we might as well just triangulate on upload if we're reading it in the beginning though...?
-	var file = event.target.files[0];
-	var filePath = window.URL.createObjectURL( file );
-	$.ajax({
-		url : filePath,
-		success : function( fileAsString ) {
 
-			var lines = fileAsString.split(/[\r\n]/);
-			bareLines = lines.filter(function(line) {
-				return (line[0] === 'v' && line[1] === ' ') ||
-					   (line[0] === 'f' && line[1] === ' ')
-			});
-			var bareFile = new Blob( [ bareLines.join('\n') ], { type: "text/plain" } );
-			var bareFilePath = window.URL.createObjectURL( bareFile );
-
-			console.log( "File was read and loaded successfully." +
-						"\nName: " + file.name +
-						"\nSize: " + file.size + " bytes" );
 
 			// Note: this loadedObject is a container for an Object3D which is the one that actually holds the mesh!
 			var loadedObject = create3DObject( bareFilePath, file.name, loadedObjectMaterial );
@@ -243,28 +194,8 @@ function asyncLoadObject() {
 
 			// Create controls for each loaded object, attach them to the loaded object,
 			// and add them to the scene so we can actually see them.
-			var objectControls = new THREE.TransformControls( camera, renderer.domElement );
-			objectControls.addEventListener( 'change', render );
-			objectControls.attach( loadedObject );
-			scene.add( objectControls );
 
-			// Associate the objectControls with the loadedObject. See gui.js in triangulation button.
-			objectControls.name = "Controller for " + loadedObject.id;
 
-			// Make the most recently loaded object the selected object.
-			selectedObject = loadedObject;
-			selectedObjectMaterial = loadedObjectMaterial;
-			selectedObjectControls = objectControls;
-			showOnly( selectedObjectControls );
-
-			//selectedObjectMaterial.uniforms.texture1.value.wrapS = selectedObjectMaterial.uniforms.texture1.value.wrapT = THREE.RepeatWrapping;
-			//selectedObjectMaterial.uniforms.texture2.value.wrapS = selectedObjectMaterial.uniforms.texture2.value.wrapT = THREE.RepeatWrapping;
-
-			FRAGCODE.on("change", updateCustomShader);
-			VERTCODE.on("change", updateCustomShader);
-
-		} // end ajax success
-	});
 
 }
 
@@ -284,27 +215,34 @@ function onCanvasMouseDown( event ) {
     raycaster.setFromCamera( mouse, camera );
 
     // The true flag is for intersecting descendents of whatever is intersected.
-    var intersects = raycaster.intersectObjects( loadedObjects, true );
+    var intersects = raycaster.intersectObjects( loadedMeshes, true );
 
     // intersects[0] is the mesh the raycaster intersects.
     if ( intersects.length > 0 ) {
 
+        selectedMesh = intersects[0].object;
+
+        document.getElementById("selected_obj").innerHTML = "Currently selected obj: " + selectedMesh.parent.name;
+        document.getElementById("selected_mesh").innerHTML = "Currently selected mesh: " + selectedMesh.name;
+        var objectControls = scene.getObjectByName("Controller for " + selectedMesh.parent.id);
+        console.log(objectControls);
+        showOnlyTheseControls( objectControls );
         // The selected object is the objContainer for the object the intersected mesh belongs to!
-        selectedObject = intersects[0].object.parent.parent;
-        selectedObjectMaterial = selectedObject.children[0].children[0].material;
-        selectedObjectControls = scene.getObjectByName("Controller for " + selectedObject.id);
-        showOnly( selectedObjectControls );
-
-        console.log("You selected " + selectedObject.name + ".");
-
-        // Update stats when object is selected.
-        document.getElementById("selected_obj").innerHTML = "Currently selected:<br>" + selectedObject.name;
-
-        var geometry = selectedObject.children[0].children[0].geometry;
-        document.getElementById("vertices").innerHTML = "Vertices: " + geometry.num_vertices;
-        document.getElementById("edges").innerHTML = "Edges: " + 3/2 * geometry.num_faces;
-        document.getElementById("faces").innerHTML = "Faces: " + geometry.num_faces;
-        document.getElementById("genus").innerHTML = "Genus: " + geometry.genus;
+        // selectedObject = intersects[0].object.parent.parent;
+        // selectedObjectMaterial = selectedObject.children[0].children[0].material;
+        // selectedObjectControls = scene.getObjectByName("Controller for " + selectedObject.id);
+        // showOnly( selectedObjectControls );
+        //
+        // console.log("You selected " + selectedObject.name + ".");
+        //
+        // // Update stats when object is selected.
+        // document.getElementById("selected_obj").innerHTML = "Currently selected:<br>" + selectedObject.name;
+        //
+        // var geometry = selectedObject.children[0].children[0].geometry;
+        // document.getElementById("vertices").innerHTML = "Vertices: " + geometry.num_vertices;
+        // document.getElementById("edges").innerHTML = "Edges: " + 3/2 * geometry.num_faces;
+        // document.getElementById("faces").innerHTML = "Faces: " + geometry.num_faces;
+        // document.getElementById("genus").innerHTML = "Genus: " + geometry.genus;
 
     }
 
@@ -314,8 +252,8 @@ function onCanvasMouseDown( event ) {
 /* Creates some lights and adds them to the scene. */
 function lights() {
 
-    // var ambientLight = new THREE.AmbientLight( 0xffffff );
-    // scene.add( ambientLight );
+    var ambientLight = new THREE.AmbientLight( 0xffffff );
+    scene.add( ambientLight );
 
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
     directionalLight.position.set( 1, 1, 1 );
@@ -327,84 +265,112 @@ function lights() {
 /* Loads our 3D Object into a container object, and returns the container. This seems kind of silly
    (because why not just return our 3D Object?), but we do this because loading is asynchronous. This might
    seem like a poor trick, but it's from mrdoob himself http://stackoverflow.com/a/22977590/4085283. */
-function create3DObject( obj_url, obj_name, obj_material ) {
+function add3DObject() {
 
-    var objContainer = new THREE.Object3D();
-
-    // Clear our container for safety.
-    objContainer.children.length = 0;
-
+    var file = event.target.files[0];
+    var filePath = window.URL.createObjectURL( file );
     var loader = new THREE.OBJLoader();
 
-    loader.load( obj_url, function ( object ) {
+    $.ajax({
+        url: filePath,
+        success: function( fileAsString ) {
+            var object = loader.parse( fileAsString );
+            object.name = file.name;
 
-        object.name = obj_name;
+            applyDefaultMaterials( object );
+            normalizeAndCenterGeometries( object );
+            recognizeMeshesOfObjectForRaycasterSelection( object );
 
-        // Traverse the 3D Object's children to find the Mesh property.
-        object.traverse( function( mesh ) {
+            var objectControls = addTransformControls( object );
+            showOnlyTheseControls( objectControls );
 
-            if ( mesh instanceof THREE.Mesh ) {
+            scene.add( object );
 
-                // Assign the parameter material to the mesh.
-                mesh.material = obj_material;
-
-                // The updated version of OBJLoader uses a BufferGeometry for the loaded 3D Object by default.
-                // It stores all of the geometry's data within buffers,
-                // to reduce the cost of passing all of the data directly to the GPU. (?)
-                // We unpack it to a Geometry first for easier manipulation!
-                var geometry = new THREE.Geometry().fromBufferGeometry( mesh.geometry );
-
-                // Normalize geometry by scaling it down by it's bounding sphere's radius. Also centers it.
-                geometry.normalize();
-
-                // Compute face normals so we can we use flat shading.
-                // Merge vertices to removes duplicates and update faces' vertices.
-                // Compute vertex normals so we can use Phong shading (i.e. smooth shading).
-                geometry.computeFaceNormals();
-                geometry.mergeVertices();
-                geometry.computeVertexNormals();
-
-                // Compute and print vertices, edges, faces, and genus.
-                // We use the Euler characteristic of a surface, 2 - 2g = V - E + F.
-                // To use the above formula, notice that in any TRIANGULAR mesh, every face
-                // touches three half-edges, so we have 2E = 3F.
-                var numVertices = geometry.vertices.length;
-                var numFaces = geometry.faces.length;
-                var numEdges = 3/2 * numFaces;
-                var genus = (1 - numVertices/2 + numFaces/4);
-
-                document.getElementById("selected_obj").innerHTML = "Currently selected:<br>" + obj_name;
-                document.getElementById("selected_hreaker").style.display = "block";
-                document.getElementById("vertices").innerHTML = "Vertices: " + numVertices;
-                document.getElementById("edges").innerHTML = "Edges: " + numEdges;
-                document.getElementById("faces").innerHTML = "Faces: " + numFaces;
-                document.getElementById("genus").innerHTML = "Genus: " + genus;
-
-                // Convert back to a bufferGeometry for efficiency (??)
-                mesh.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
-
-                // Store for later.
-                mesh.geometry.num_vertices = numVertices;
-                mesh.geometry.edges = numEdges;
-                mesh.geometry.num_faces = numFaces;
-                mesh.geometry.genus = genus;
-
-            } // end if
-
-        }); // end object.traverse
-
-        objContainer.add( object );
-
-    }); // end loader
-
-    // Hide download button to the old triangulated obj file.
-    // This has to be outside of the loader because loading is asynchronous.
-    document.getElementById("download_link").style.display = "none";
-    document.getElementById("download_hreaker").style.display = "none";
-
-    return objContainer;
+            console.log("File was read and loaded into scene successfully." +
+						"\nName: " + file.name +
+						"\nSize: " + file.size + " bytes" );
+        }
+    });
 
 }
+
+function recognizeMeshesOfObjectForRaycasterSelection( object ) {
+    object.children.forEach( function( child ) {
+        if ( child instanceof THREE.Mesh ) {
+            loadedMeshes.push( child );
+        }
+    });
+}
+
+function applyDefaultMaterials( object ) {
+    object.children.forEach( function( child ) {
+        if ( child instanceof THREE.Mesh ) {
+            child.material = new THREE.MeshPhongMaterial({
+                color: 0xffffff * Math.random(),
+                side: THREE.DoubleSide
+            });
+        }
+    });
+}
+
+// With r74 OBJLoader, o and g tags are processed as their own separate meshes (and hence their own geometries).
+// Because of this, we have to jump through a couple of hoops to normalize and center each geometry.
+function normalizeAndCenterGeometries( object ) {
+
+    // Merge all of the geometries to find the the correct bounding sphere for the correct object.
+    // Using BufferGeometry doesn't work for some reason, so we convert into a regular geometry.
+    var mergedGeometry = new THREE.Geometry();
+    object.children.forEach( function( child ) {
+        if ( child instanceof THREE.Mesh ) {
+            var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
+            mergedGeometry.merge( geometry );
+        }
+    });
+    mergedGeometry.computeBoundingSphere();
+    var r = mergedGeometry.boundingSphere.radius;
+    object.scale.set( 1/r, 1/r, 1/r );
+
+    // Now we enter each geometry with respect to the mergedGeometry's bounding box.
+    // This is similar to what three.js does on line 10030 for centering. I'm surprised this worked!
+    mergedGeometry.computeBoundingBox();
+    var offset = mergedGeometry.boundingBox.center().negate();
+    object.children.forEach( function( child ) {
+        if ( child instanceof THREE.Mesh ) {
+            child.geometry.translate( offset.x, offset.y, offset.z );
+        }
+    });
+
+}
+
+// Adds transformsControls for a given object.
+// Returns the created controls.
+function addTransformControls( object ) {
+    var objectControls = new THREE.TransformControls( camera, renderer.domElement );
+    objectControls.addEventListener( 'change', render );
+    objectControls.attach( object );
+    scene.add( objectControls );
+    objectControls.name = "Controller for " + object.id;
+    return objectControls;
+}
+
+
+// Show only the selected object's transform controls.
+// Making the controls invisible still allows them to be clickable, so we make them really small too.
+function showOnlyTheseControls( objectControls ) {
+    scene.children.forEach( function( child ) {
+        if ( child instanceof THREE.TransformControls ) {
+            if ( child !== objectControls ) {
+                child.visible = false;
+                child.setSize(0.00001);
+            }
+            else {
+                child.visible = true;
+                child.setSize(1);
+            }
+        }
+    });
+}
+
 
 /* This recursively animates the scene using the awesome requestAnimationFrame. */
 function animate() {
@@ -413,8 +379,12 @@ function animate() {
         requestAnimationFrame( animate );
     // }, 1000 / 30 ); // frame count goes to the denominator.
 
-    render();
+    if ( selectedMesh ) {
+        var objectControls = scene.getObjectByName("Controller for " + selectedMesh.parent.id);
+        objectControls.update();
+    }
 
+    render();
 }
 
 /* This just renders the scene with respect to a camera once. */
@@ -431,17 +401,3 @@ window.addEventListener( "resize", function() {
     camera.aspect = canvasWidth / canvasHeight;
     camera.updateProjectionMatrix();
 });
-
-function showOnly( objectControls ) {
-    for ( var i = 0; i < scene.children.length; i++ ) {
-        if ( scene.children[i] == objectControls ) {
-            objectControls.visible = true;
-            if (objectControls.size == 0.000001)
-                objectControls.size =  1;
-        }
-        else if ( scene.children[i] instanceof THREE.TransformControls ) {
-            scene.children[i].visible = false;
-            scene.children[i].size = 0.000001;
-        }
-    }
-}
