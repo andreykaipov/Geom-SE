@@ -40,13 +40,13 @@ function createGuiScale( gui ) {
     var scaleFolder = gui.addFolder( "Scale" );
 
     scaleFolder.add( parameters, 'scaleX', 1, 100 ).step(1).name( "scale x" ).onChange(
-        function( value ) { selectedObject.scale.setX( value ); }
+        function( value ) { selectedMesh.scale.setX( value ); }
     );
     scaleFolder.add( parameters, 'scaleY', 1, 100 ).step(1).name( "scale y" ).onChange(
-        function( value ) { selectedObject.scale.setY( value ); }
+        function( value ) { selectedMesh.scale.setY( value ); }
     );
     scaleFolder.add( parameters, 'scaleZ', 1, 100 ).step(1).name( "scale z" ).onChange(
-        function( value ) { selectedObject.scale.setZ( value ); }
+        function( value ) { selectedMesh.scale.setZ( value ); }
     );
 
     scaleFolder.add( {
@@ -54,7 +54,7 @@ function createGuiScale( gui ) {
         // Without the .listen() method above, the gui sliders will not visually reset !
         resetScale: function() {
             parameters.scaleX = parameters.scaleY = parameters.scaleZ = 1;
-            selectedObject.scale.set( 1, 1, 1 );
+            selectedMesh.scale.set( 1, 1, 1 );
         }
     }, 'resetScale' ).name( "reset scale" );
 
@@ -64,10 +64,10 @@ function createGuiScale( gui ) {
 
     function updateScaleGui() {
         requestAnimationFrame( updateScaleGui );
-        if ( selectedObject != null ) {
-            parameters.scaleX = selectedObject.scale.x;
-            parameters.scaleY = selectedObject.scale.y;
-            parameters.scaleZ = selectedObject.scale.z;
+        if ( selectedMesh != null ) {
+            parameters.scaleX = selectedMesh.scale.x;
+            parameters.scaleY = selectedMesh.scale.y;
+            parameters.scaleZ = selectedMesh.scale.z;
         }
         for ( var i in scaleFolder.__controllers )
             scaleFolder.__controllers[i].updateDisplay();
@@ -88,13 +88,13 @@ function createGuiRotation( gui ) {
     var rotationFolder = gui.addFolder( "Rotation (clockwise in radians)" );
 
     rotationFolder.add( parameters, 'rotationX', -Math.PI, Math.PI ).name( "rotate on x" ).onChange(
-        function ( value ) { selectedObject.rotation.x = value; }
+        function ( value ) { selectedMesh.rotation.x = value; }
     );
     rotationFolder.add( parameters, 'rotationY', -Math.PI, Math.PI ).name( "rotate on y" ).onChange(
-        function( value ) { selectedObject.rotation.y = value; }
+        function( value ) { selectedMesh.rotation.y = value; }
     );
     rotationFolder.add( parameters, 'rotationZ', -Math.PI, Math.PI ).name( "rotate on z" ).onChange(
-        function( value ) { selectedObject.rotation.z = value; }
+        function( value ) { selectedMesh.rotation.z = value; }
     );
 
     // Set the sliders to start at 0. This is related to the above bug issue.
@@ -104,7 +104,7 @@ function createGuiRotation( gui ) {
         // Reset object rotation and reset gui sliders.
         resetRotation: function() {
             parameters.rotationX = parameters.rotationY = parameters.rotationZ = 0;
-            selectedObject.rotation.set( 0, 0, 0 );
+            selectedMesh.rotation.set( 0, 0, 0 );
         }
     }, 'resetRotation' ).name( "reset rotation" );
 
@@ -114,10 +114,10 @@ function createGuiRotation( gui ) {
 
     function updateRotationGui() {
         requestAnimationFrame( updateRotationGui );
-        if ( selectedObject != null ) {
-            parameters.rotationX = selectedObject.rotation.x;
-            parameters.rotationY = selectedObject.rotation.y;
-            parameters.rotationZ = selectedObject.rotation.z;
+        if ( selectedMesh != null ) {
+            parameters.rotationX = selectedMesh.rotation.x;
+            parameters.rotationY = selectedMesh.rotation.y;
+            parameters.rotationZ = selectedMesh.rotation.z;
         }
         for ( var i in rotationFolder.__controllers )
             rotationFolder.__controllers[i].updateDisplay();
@@ -136,13 +136,13 @@ function createGuiTranslation( gui ) {
     var translationFolder = gui.addFolder( "Translation" );
 
     translationFolder.add( parameters, 'translationX', -20, 20 ).name( "translate x" ).onChange(
-        function ( value ) { selectedObject.position.setX( value ); }
+        function ( value ) { selectedMesh.position.setX( value ); }
     );
     translationFolder.add( parameters, 'translationY', -20, 20 ).name( "translate y" ).onChange(
-        function( value ) { selectedObject.position.setY( value ); }
+        function( value ) { selectedMesh.position.setY( value ); }
     );
     translationFolder.add( parameters, 'translationZ', -20, 20 ).name( "translate z" ).onChange(
-        function( value ) { selectedObject.position.setZ( value ); }
+        function( value ) { selectedMesh.position.setZ( value ); }
     );
 
     // Set the sliders to start at 0.
@@ -152,7 +152,7 @@ function createGuiTranslation( gui ) {
         // Reset object translation and reset gui sliders.
         resetTranslation: function() {
             parameters.translationX = parameters.translationY = parameters.translationZ = 0;
-            selectedObject.position.set( 0, 0, 0 );
+            selectedMesh.position.set( 0, 0, 0 );
         }
     }, 'resetTranslation' ).name( "reset translation" );
 
@@ -162,10 +162,10 @@ function createGuiTranslation( gui ) {
 
     function updateTranslationGui() {
         requestAnimationFrame( updateTranslationGui );
-        if ( selectedObject != null ) {
-            parameters.translationX = selectedObject.position.x;
-            parameters.translationY = selectedObject.position.y;
-            parameters.translationZ = selectedObject.position.z;
+        if ( selectedMesh != null ) {
+            parameters.translationX = selectedMesh.position.x;
+            parameters.translationY = selectedMesh.position.y;
+            parameters.translationZ = selectedMesh.position.z;
         }
         for ( var i in translationFolder.__controllers )
             translationFolder.__controllers[i].updateDisplay();
@@ -228,7 +228,7 @@ function createGuiMaterial( gui ) {
 
     // Wow the color updating was a pain to figure out.
     function updateMaterialGui() {
-        if ( selectedObject != null ) {
+        if ( selectedMesh != null ) {
             parameters.color = "#" + selectedObjectMaterial.uniforms.diffuse.value.getHexString();
             parameters.shading = selectedObjectMaterial.shading;
             parameters.side = selectedObjectMaterial.side;
@@ -257,24 +257,24 @@ function createTriangulation( gui ) {
     gui.add({
         triangulate: function() {
 
-            if ( selectedObject == null ) {
+            if ( selectedMesh == null ) {
                 alert("Nothing to triangulate!");
                 return -1;
             }
 
             // See http://stackoverflow.com/a/8197770/4085283 for the idea.
             $.ajax({
-                url : selectedObject.userData.filePath,
+                url : selectedMesh.userData.filePath,
                 success : function( fileAsString ) {
 
-                    if ( selectedObject.userData.triangulated == true ) {
+                    if ( selectedMesh.userData.triangulated == true ) {
                         alert("You've already triangulated this object!");
                         return -1;
                     }
 
                     var triangulatedFileAsString = triangulate( fileAsString );
                     var triangulatedFile = new Blob( [ triangulatedFileAsString ], { type: "text/plain" } );
-                    triangulatedFile.name = selectedObject.name.slice(0,-4) + "_triangulated.obj";
+                    triangulatedFile.name = selectedMesh.name.slice(0,-4) + "_triangulated.obj";
 
                     console.log( "Selected object was triangulated successfully." +
                                  "\nThe new size is " + triangulatedFile.size + " bytes.");
@@ -290,23 +290,23 @@ function createTriangulation( gui ) {
 
                     // Replace the selectedObject from the loadedObjects array with the new triangulatedObject.
                     // This is necessary for raycaster to work properly.
-                    var found = loadedObjects.indexOf(selectedObject);
+                    var found = loadedObjects.indexOf(selectedMesh);
                     loadedObjects.splice( found, 1, triangulatedObject );
 
                     // Detach the old controls from the selectedObject and remove them from the scene.
-                    scene.getObjectByName("Controller for " + selectedObject.id).detach();
-                    scene.remove( scene.getObjectByName("Controller for " + selectedObject.id) );
+                    scene.getObjectByName("Controller for " + selectedMesh.id).detach();
+                    scene.remove( scene.getObjectByName("Controller for " + selectedMesh.id) );
 
                     // Remove the selectedObject from the scene and add in the triangulatedObject.
-                    scene.remove( selectedObject );
+                    scene.remove( selectedMesh );
                     scene.add(triangulatedObject);
 
                     // Make a copy of the selectedObject's properties into the new triangulatedObject.
-                    triangulatedObject.scale.set( selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z );
-                    triangulatedObject.position.set( selectedObject.position.x, selectedObject.position.y, selectedObject.position.z );
-                    triangulatedObject.rotation.set( selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z );
+                    triangulatedObject.scale.set( selectedMesh.scale.x, selectedMesh.scale.y, selectedMesh.scale.z );
+                    triangulatedObject.position.set( selectedMesh.position.x, selectedMesh.position.y, selectedMesh.position.z );
+                    triangulatedObject.rotation.set( selectedMesh.rotation.x, selectedMesh.rotation.y, selectedMesh.rotation.z );
 
-                    selectedObject = triangulatedObject;
+                    selectedMesh = triangulatedObject;
 
                     // Give the triangulatedObject their own controls. This is similar to the loadedObject in the obj_viewer.js.
                     var objectControls = new THREE.TransformControls( camera, renderer.domElement );

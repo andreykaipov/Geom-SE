@@ -44,7 +44,6 @@ function updateCameraFromKeyboard() {
 
     camera.updateProjectionMatrix();
 
-    if (selectedObjectControls) selectedObjectControls.update();
     window.requestAnimationFrame(updateCameraFromKeyboard);
 }
 
@@ -55,37 +54,38 @@ document.getElementById("graphicsContainer").addEventListener( 'keyup', function
 document.getElementById("graphicsContainer").addEventListener( 'keydown', function(event) {
 
     // The camera controls are taken care of outside of this event listener,
-    // because we want for the camera controls to be smooth and continuous.
+    // because we want for the camera controls to be smooth, and not depend on individual key presses.
     keysPressedForCamera[event.keyCode] = true;
 
-    // These are the keyboard options that allow us to update the transform controls of an object.
+    // The following are the keyboard options that allow us to update the transform controls of an object.
+    var objectControls = scene.getObjectByName("Controller for " + selectedMesh.parent.id);
+
     switch ( event.keyCode ) {
         case 48: // 0
             // What's the difference between local and world space?
-            selectedObjectControls.setSpace( objectControls.space === "local" ? "world" : "local" );
+            objectControls.setSpace( objectControls.space === "local" ? "world" : "local" );
             break;
         case 49: // 1
-            selectedObjectControls.setMode( "translate" );
+            objectControls.setMode( "translate" );
             break;
         case 50: // 2
-            selectedObjectControls.setMode( "rotate" );
+            objectControls.setMode( "rotate" );
             break;
         case 51: // 3
-            selectedObjectControls.setMode( "scale" );
+            objectControls.setMode( "scale" );
             break;
 
         case 187: // =/+ key
         case 107: // numpad +
-            selectedObjectControls.setSize( selectedObjectControls.size + 0.1 );
+            objectControls.setSize( objectControls.size + 0.1 );
             break;
         case 189: // -/_ key
         case 109: // numpad -
-            selectedObjectControls.setSize( Math.max( selectedObjectControls.size - 0.1, 0.1 ) );
+            objectControls.setSize( Math.max( objectControls.size - 0.1, 0.1 ) );
             break;
 
         case 17: // CTRL key
             // Toggle snap-to-grid for the selectedObject.
-            var objectControls = scene.getObjectByName("Controller for " + selectedObject.id);
             if ( objectControls.translationSnap == null && objectControls.rotationSnap == null) {
                 objectControls.setTranslationSnap( 1 );
                 objectControls.setRotationSnap( THREE.Math.degToRad(15) );
@@ -97,7 +97,7 @@ document.getElementById("graphicsContainer").addEventListener( 'keydown', functi
 
         case 72: // H
             // Toggle visibility of selected object controls
-            selectedObjectControls.visible = (selectedObjectControls.visible ? false : true);
+            objectControls.visible = (objectControls.visible ? false : true);
     }
 
 });
