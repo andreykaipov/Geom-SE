@@ -164,40 +164,6 @@ function loadTextures() {
 	}
 }
 
-// Client-side upload, and triangulate to temp file. JS does not allow full path so we create a temporary path.
-// See http://stackoverflow.com/a/24818245/4085283, and http://stackoverflow.com/a/21016088/4085283.
-function loadObject() {
-
-	// See https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderLib.js.
-
-
-	// r74 OBJLoader actually recognizes named objects and polygon groups in obj files.
-	// This is good if the user wants to assign different materials to differnet parts of the obj file.
-	// This is troublesome if we want to normalize the 3D Object, because it would mean we have to merge
-	// all the geometries together somehow and merge as one. So, for now, we'll just strip ot everything
-	// but the vertices and faces from the object file to assure that the object file is loaded in one geometry.
-	// Since loading is asynchronous (?), everything else has to go into the ajax success call.
-	// I'm thinking we might as well just triangulate on upload if we're reading it in the beginning though...?
-
-
-			// Note: this loadedObject is a container for an Object3D which is the one that actually holds the mesh!
-			var loadedObject = create3DObject( bareFilePath, file.name, loadedObjectMaterial );
-			loadedObject.name = file.name;
-			// Add the file path as an attribute to the object.
-			// We'll need it again if the user wants to triangulate. See gui.js.
-			loadedObject.userData.filePath = filePath;
-
-			// Add the loadedObject to the array for raycaster selection.
-			loadedObjects.push( loadedObject );
-
-			scene.add( loadedObject );
-
-			// Create controls for each loaded object, attach them to the loaded object,
-			// and add them to the scene so we can actually see them.
-
-
-
-}
 
 /* The following two functions take care of our raycaster selecting objects. For reference,
    see the example http://mrdoob.github.io/three.js/examples/canvas_interactive_cubes.html */
@@ -222,8 +188,11 @@ function onCanvasMouseDown( event ) {
 
         selectedMesh = intersects[0].object;
 
-        document.getElementById("selected_obj").innerHTML = "Currently selected obj: " + selectedMesh.parent.name;
-        document.getElementById("selected_mesh").innerHTML = "Currently selected mesh: " + selectedMesh.name;
+        document.getElementById("selected_obj").innerHTML = "Currently selected object: " + selectedMesh.parent.name;
+        document.getElementById("selected_mesh").innerHTML = "Currently selected mesh group: " + selectedMesh.name;
+
+        showInfoForSelectedMesh( selectedMesh );
+
         var objectControls = scene.getObjectByName("Controller for " + selectedMesh.parent.id);
         console.log(objectControls);
         showOnlyTheseControls( objectControls );
@@ -274,8 +243,9 @@ function add3DObject() {
     $.ajax({
         url: filePath,
         success: function( fileAsString ) {
-            var object = loader.parse( fileAsString );
+            var object = loader.parse( triangulate( fileAsString ) );
             object.name = file.name;
+            object.userData.filePath = filePath;
 
             applyDefaultMaterials( object );
             normalizeAndCenterGeometries( object );
@@ -311,6 +281,46 @@ function applyDefaultMaterials( object ) {
             });
         }
     });
+}
+
+// Build a half-edge mesh for each mesh of the object to easily compute things.
+function computeInfoForEachMesh( object ) {
+
+    var meshes = OBJParser.parseToSimpleMesh( object.userData.filePath );
+
+    for ( var i = 0; i < object.children.length; i++ ) {
+        var child = object.children[i];
+        if ( child instanceof THREE.Mesh ) {
+            var heMesh = new HalfEdgeMesh( meshes[i] );
+            heMesh.build();
+            console.log(heMesh.orient());
+
+            // for ( var i = 0; i < heMesh.heFaces; i++ ) {
+            //     if ( ! heMesh.heFaces[i].is_oriented() ) {
+            //         console.log("WOW");
+            //     }
+            // }
+
+            child.userData.vertices = heMesh.vertices;
+            child.userData.edges = heMesh.edges;
+            child.userData.faces = heMesh.faces;
+            child.userData.characteristic = heMesh.characteristic;
+            child.userData.genus = heMesh.genus;
+        }
+    }
+
+}
+
+function showInfoForSelectedMesh( mesh ) {
+    if ( mesh.name == "" ) { mesh.name = "no group name"; }
+    document.getElementById("selected_obj").innerHTML = "Currently selected object: " + mesh.parent.name;
+    document.getElementById("selected_mesh").innerHTML = "Currently selected mesh group: " + mesh.name;
+    document.getElementById("selected_hreaker").style.display = "block";
+    document.getElementById("vertices").innerHTML = "Vertices: " + mesh.userData.vertices;
+    document.getElementById("edges").innerHTML = "Edges: " + mesh.userData.edges;
+    document.getElementById("faces").innerHTML = "Faces: " + mesh.userData.faces;
+    document.getElementById("characteristic").innerHTML = "Characteristic: " + mesh.userData.characteristic;
+    document.getElementById("genus").innerHTML = "Genus: " + mesh.userData.genus;
 }
 
 // With r74 OBJLoader, o and g tags are processed as their own separate meshes (and hence their own geometries).
