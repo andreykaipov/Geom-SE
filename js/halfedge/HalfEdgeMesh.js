@@ -5,9 +5,9 @@ class HalfEdgeMesh {
     constructor( mesh ) {
 
         this.mesh = mesh;
-        this.heVertices = [];
+        this.heVertices = {};
         this.heFaces = [];
-        this.heHash = new HalfEdgeHash( );
+        this.heHash = new HalfEdgeHash();
 
     }
 
@@ -22,9 +22,14 @@ class HalfEdgeMesh {
     buildVertices() {
 
         let self = this;
-        self.mesh.vertices.forEach( v => {
-            self.heVertices.push( new HalfEdgeVertex( v[0], v[1], v[2] ) );
-        });
+        let vertices = self.mesh.vertices;
+
+        for ( let key in vertices ) {
+
+            let v = vertices[key];
+            self.heVertices[key] = new HalfEdgeVertex( v[0], v[1], v[2] );
+
+        }
 
     }
 
@@ -64,30 +69,36 @@ class HalfEdgeMesh {
     // Iteratively orient the faces of the mesh.
     orient() {
 
-        this.heFaces.oriented = true;
+        this.heFaces[0].oriented = true;
         let stack = [ this.heFaces[0] ];
+
         while ( stack.length > 0 ) {
             let face = stack.pop();
             let orientedFaces = face.orient_adj_faces();
             orientedFaces.forEach( face => stack.push(face) );
         }
 
+        return true;
+
     }
 
     // Gets the count of vertices in the mesh.
     get vertices() {
-        if ( this.heVertices.length != this.mesh.vertices.length ) {
-            alert("Not every vertex from the obj file was transformed into a HalfEdgeVertex.");
+        let heLength = Object.keys(this.heVertices).length;
+        let simpleLength = Object.keys(this.mesh.vertices).length;
+
+        if ( heLength !== simpleLength ) {
+            throw new Error("Not every vertex from the obj file was transformed into a HalfEdgeVertex.");
         }
         else {
-            return this.heVertices.length;
+            return heLength;
         }
     }
 
     // Gets the count of faces in the mesh.
     get faces() {
         if ( this.heFaces.length != this.mesh.faces.length ) {
-            alert("Not every face from the obj file was transformed into a HalfEdgeFace.");
+            throw new Error("Not every face from the obj file was transformed into a HalfEdgeFace.");
         }
         else {
             return this.heFaces.length;
@@ -129,7 +140,22 @@ class HalfEdgeMesh {
 
     // Gets an array of the boundary vertices.
     get boundary_vertices() {
-        return this.heVertices.filter( hev => hev.is_boundary_vertex() );
+
+        let boundaryVertices = [];
+
+        for ( let key in this.heVertices ) {
+
+            let hev = this.heVertices[key];
+
+            if ( hev.is_boundary_vertex() ) {
+
+                boundaryVertices.push( hev );
+
+            }
+
+        }
+
+        return boundaryVertices;
     }
 
     // Gets an array of boundary components of this mesh.
