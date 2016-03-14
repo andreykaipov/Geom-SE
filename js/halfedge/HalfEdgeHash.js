@@ -1,30 +1,55 @@
 "use strict";
 
-class HalfEdgeHash {
+class HalfEdgeHash extends Map {
 
     constructor() {
-        // Nah
+
+        super();
+
     }
 
-    form_halfedge_key( x, y ) {
-        return [ Math.min(x,y), Math.max(x,y) ];
+    form_pair( x, y ) {
+
+        return [ [ Math.min( x, y ) ], [ Math.max( x, y ) ] ];
+
     }
 
-    hash_halfedge( key, halfedge ) {
+    // Encodes two natural numbers using Cantor's pairing function.
+    // https://en.wikipedia.org/wiki/Pairing_function
+    encode_pair( x, y ) {
 
-        let self = this;
+        return ( 1 / 2 ) * ( x + y ) * ( x + y + 1 ) + y;
 
-        if ( self.hasOwnProperty(key) && self.hasOwnProperty(key.slice().reverse()) ) {
-            alert(`Geometry is non-manifold bro.\n` +
-                `The edge along the vertices ${key.map(v => v + 1)} touches more than two faces!`);
+    }
+
+    // If the hash has both the key and the reverseKey, that's not good.
+    // Otherwise, if the hash has only one key, then the half-edge we are adding
+    // is opposite to the one already in the hash at that key.
+    // If the hash doesn't have any key, then just add it in.
+    hash_halfedge( vIndexPair, halfedge ) {
+
+        let hash = this;
+        let key = this.encode_pair( vIndexPair[0], vIndexPair[1] );
+        let reverseKey = this.encode_pair( vIndexPair[1], vIndexPair[0] );
+
+        if ( hash.has( key ) && hash.has( reverseKey ) ) {
+
+            throw new Error(`Geometry is non-manifold bro.\n` +
+                `The edge along the vertices sss touches more than two faces!`);
+
         }
-        else if ( self.hasOwnProperty(key) ) {
-            halfedge.oppHalfEdge = self[key];
-            self[key].oppHalfEdge = halfedge;
-            key = key.slice().reverse();
-        }
+        else if ( hash.has( key ) ) {
 
-        self[key] = halfedge;
+            halfedge.oppHalfEdge = hash.get( key );
+            hash.get( key ).oppHalfEdge = halfedge;
+            hash.set( reverseKey, halfedge );
+
+        }
+        else {
+
+            hash.set( key, halfedge );
+
+        }
 
     }
 
