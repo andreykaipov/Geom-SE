@@ -22,12 +22,23 @@ function createGUI() {
     createGuiMaterial( gui );
     createTriangulation( gui );
     createUploadObjFile( gui );
+    createComputeInfo( gui );
 
     // Start with a collpased GUI.
     gui.close();
 
 }
 
+function createComputeInfo( gui ) {
+
+    gui.add({
+        computeInfo: function() {
+            computeInfoForMesh( selectedMesh );
+            showInfoForMesh( selectedMesh );
+        }
+    }, 'computeInfo').name( "compute.." );
+
+}
 
 function createGuiScale( gui ) {
 
@@ -201,24 +212,24 @@ function createGuiMaterial( gui ) {
             if ( typeof value === "string" ) {
                 value = value.replace('#', '0x');
             }
-            selectedObjectMaterial.uniforms.diffuse.value.setHex( value );
+            selectedMesh.material.color.setHex( value );
         }
     );
 
     materialFolder.add( parameters, 'shading', constants.shadingOptions ).onChange(
         function( value ) {
-            selectedObjectMaterial.shading = (selectedObjectMaterial.shading === 1) ? 2 : 1;
-            selectedObjectMaterial.needsUpdate = true;
+            selectedMesh.shading = (selectedMesh.shading === 1) ? 2 : 1;
+            selectedMesh.needsUpdate = true;
         }
     );
 
     materialFolder.add( parameters, 'side', constants.sideOptions ).onChange(
         function( value ) {
-            if ( value == 0 ) selectedObjectMaterial.side = 0;
-            if ( value == 1 ) selectedObjectMaterial.side = 1;
-            if ( value == 2 ) selectedObjectMaterial.side = 2;
+            if ( value == 0 ) selectedMesh.material.side = 0;
+            if ( value == 1 ) selectedMesh.material.side = 1;
+            if ( value == 2 ) selectedMesh.material.side = 2;
 
-            selectedObjectMaterial.needsUpdate = true;
+            selectedMesh.material.needsUpdate = true;
         }
     );
 
@@ -229,9 +240,9 @@ function createGuiMaterial( gui ) {
     // Wow the color updating was a pain to figure out.
     function updateMaterialGui() {
         if ( selectedMesh != null ) {
-            parameters.color = "#" + selectedObjectMaterial.uniforms.diffuse.value.getHexString();
-            parameters.shading = selectedObjectMaterial.shading;
-            parameters.side = selectedObjectMaterial.side;
+            parameters.color = "#" + selectedMesh.material.color.getHexString();
+            parameters.shading = selectedMesh.material.shading;
+            parameters.side = selectedMesh.material.side;
         }
         for ( var i in materialFolder.__controllers )
             materialFolder.__controllers[i].updateDisplay();
