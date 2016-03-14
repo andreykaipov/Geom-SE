@@ -2,18 +2,15 @@
 
 class OBJParser {
 
-    static parseToSimpleMesh( objFilePath ) {
+    static parseToSimpleMesh( fileAsString ) {
 
-        let meshes = [];
-        let meshCount = -1;
-        let namedGroupedExists = false;
-
-        let fileAsString = $.ajax({ url: objFilePath, async: false }).responseText;
         let lines = fileAsString.split('\n');
-        // console.log(lines);
 
         let allVertices = [];
         let nonVertexLines = [];
+        let meshes = [];
+        let meshCount = -1;
+        let namedGroupedExists = false;
 
         lines.forEach( line => {
 
@@ -40,7 +37,7 @@ class OBJParser {
 
         if ( ! namedGroupedExists ) {
 
-            nonVertexLines.unshift("g NAME YOUR GROUPS PLAYA");
+            nonVertexLines.unshift("g ~ NO GROUP NAME ~");
 
         }
 

@@ -191,10 +191,10 @@ function onCanvasMouseDown( event ) {
         document.getElementById("selected_obj").innerHTML = "Currently selected object: " + selectedMesh.parent.name;
         document.getElementById("selected_mesh").innerHTML = "Currently selected mesh group: " + selectedMesh.name;
 
-        showInfoForSelectedMesh( selectedMesh );
+        showInfoForMesh( selectedMesh );
 
         var objectControls = scene.getObjectByName("Controller for " + selectedMesh.parent.id);
-        console.log(objectControls);
+        
         showOnlyTheseControls( objectControls );
         // The selected object is the objContainer for the object the intersected mesh belongs to!
         // selectedObject = intersects[0].object.parent.parent;
@@ -246,6 +246,7 @@ function add3DObject() {
             var object = loader.parse( triangulate( fileAsString ) );
             object.name = file.name;
             object.userData.filePath = filePath;
+            object.userData.simpleMeshes = OBJParser.parseToSimpleMesh( fileAsString );
 
             applyDefaultMaterials( object );
             normalizeAndCenterGeometries( object );
@@ -261,6 +262,46 @@ function add3DObject() {
 						"\nSize: " + file.size + " bytes" );
         }
     });
+
+}
+
+function computeInfoForMesh( mesh ) {
+
+    if ( mesh.name === "" ) {
+
+        mesh.name = "NO GROUP NAME";
+
+    }
+
+    var correspondingSimpleMesh;
+    var simpleMeshes = mesh.parent.userData.simpleMeshes;
+    console.log(simpleMeshes);
+    for ( var i = 0; i < simpleMeshes.length; i++ ) {
+
+        if ( simpleMeshes[ i ].name === mesh.name ) {
+
+            correspondingSimpleMesh = simpleMeshes[ i ];
+            console.log("eye");
+        }
+
+    }
+    console.log(correspondingSimpleMesh);
+    var heMesh = new HalfEdgeMesh( correspondingSimpleMesh );
+    heMesh.name = "HalfEdgeMesh for " + mesh.name;
+    heMesh.build();
+    heMesh.orient();
+
+    mesh.userData.vertices = heMesh.vertices;
+    mesh.userData.edges = heMesh.edges;
+    mesh.userData.faces = heMesh.faces;
+    mesh.userData.characteristic = heMesh.characteristic;
+    mesh.userData.genus = heMesh.genus;
+
+
+    var geo = new THREE.Geometry().fromBufferGeometry(mesh.geometry);
+    geo.mergeVertices();
+    console.log("For " + mesh.name + " we have ");
+    console.log(geo);
 
 }
 
@@ -288,31 +329,34 @@ function computeInfoForEachMesh( object ) {
 
     var meshes = OBJParser.parseToSimpleMesh( object.userData.filePath );
 
+    window.hemeshes = [];
+
     for ( var i = 0; i < object.children.length; i++ ) {
         var child = object.children[i];
         if ( child instanceof THREE.Mesh ) {
             var heMesh = new HalfEdgeMesh( meshes[i] );
+            heMesh.name = child.name;
             heMesh.build();
-            console.log(heMesh.orient());
-
-            // for ( var i = 0; i < heMesh.heFaces; i++ ) {
-            //     if ( ! heMesh.heFaces[i].is_oriented() ) {
-            //         console.log("WOW");
-            //     }
-            // }
+            heMesh.orient();
+            window.hemeshes.push( heMesh );
 
             child.userData.vertices = heMesh.vertices;
             child.userData.edges = heMesh.edges;
             child.userData.faces = heMesh.faces;
             child.userData.characteristic = heMesh.characteristic;
             child.userData.genus = heMesh.genus;
+
+
+            var geo = new THREE.Geometry().fromBufferGeometry(child.geometry);
+            geo.mergeVertices();
+            console.log("For " + child.name + " we have ");
+            console.log(geo);
         }
     }
 
 }
 
-function showInfoForSelectedMesh( mesh ) {
-    if ( mesh.name == "" ) { mesh.name = "no group name"; }
+function showInfoForMesh( mesh ) {
     document.getElementById("selected_obj").innerHTML = "Currently selected object: " + mesh.parent.name;
     document.getElementById("selected_mesh").innerHTML = "Currently selected mesh group: " + mesh.name;
     document.getElementById("selected_hreaker").style.display = "block";
