@@ -93,7 +93,7 @@ function add3DObject() {
     $.ajax({
         url: filePath,
         success: function( fileAsString ) {
-            var object = loader.parse( triangulate( fileAsString ) );
+            var object = loader.parse( OBJParser.triangulateConvex( fileAsString ) );
             object.name = file.name;
             object.userData.filePath = filePath;
             object.userData.simpleMeshes = OBJParser.parseToSimpleMesh( fileAsString );
@@ -105,7 +105,7 @@ function add3DObject() {
             var objectControls = addTransformControls( object );
             showOnlyTheseControls( objectControls );
 
-            // By default, choose the first mesh group of the object as the selectedMesh.
+            // Choose the first mesh group of the object as the default selectedMesh.
             selectedMesh = object.children[0];
             showInfoForMesh( selectedMesh );
 
