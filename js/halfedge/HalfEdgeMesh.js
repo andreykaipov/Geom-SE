@@ -211,19 +211,23 @@ class HalfEdgeMesh {
 
             let component = [ boundaryVertices.shift() ];
 
-            boundaryVertices.forEach( bv => {
+            for ( let k = 0; k < boundaryVertices.length; k++ ) {
 
-                if ( component.some( x => x.adjacent_to_for_boundary_vertex(bv) ) ) {
+                boundaryVertices.forEach( bv => {
 
-                    component.push(bv);
+                    if ( component.some( x => x.adjacent_to_via_boundary_edge(bv) ) ) {
 
-                }
+                        component.push(bv);
 
-            });
+                    }
+
+                });
+
+            }
 
             boundaryVertices = boundaryVertices.filter( bv => component.indexOf(bv) < 0 );
 
-            boundaryComponents.push( component );
+            boundaryComponents.push( new Set(component) );
 
         }
 

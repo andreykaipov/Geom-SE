@@ -79,7 +79,7 @@ class HalfEdgeVertex {
         while ( current !== null );
 
         return neighbors;
-        
+
     }
 
     adjacent_to( target ) {
@@ -108,4 +108,29 @@ class HalfEdgeVertex {
             return this.neighboring_vertices_for_boundary_vertex.indexOf(target) >= 0
         }
     }
+
+    adjacent_to_via_boundary_edge( target ) {
+
+        let current = this.outHalfEdge;
+
+        // Sweep to the boundary.
+        while ( ! current.is_boundary_edge() ) {
+            current = current.oppHalfEdge.nextHalfEdge;
+        }
+
+        if ( current.endVertex === target ) return true;
+
+        current = current.prevHalfEdge
+
+        // Sweep to the other boundary.
+        while ( ! current.is_boundary_edge() ) {
+             current = current.oppHalfEdge.prevHalfEdge
+        }
+
+        if ( current.prevHalfEdge.endVertex === target ) return true;
+
+        return false; // otherwise
+
+    }
+
 }
