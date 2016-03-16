@@ -209,25 +209,25 @@ class HalfEdgeMesh {
 
         while ( boundaryVertices.length > 0 ) {
 
-            let component = [ boundaryVertices.shift() ];
+            let boundaryComponent = [];
+            let discovered = [ boundaryVertices.shift() ];
 
-            for ( let k = 0; k < boundaryVertices.length; k++ ) {
+            while ( discovered.length > 0 ) {
+
+                let vertex = discovered.pop();
+                boundaryComponent.push( vertex );
 
                 boundaryVertices.forEach( bv => {
-
-                    if ( component.some( x => x.adjacent_to_via_boundary_edge(bv) ) ) {
-
-                        component.push(bv);
-
+                    if ( vertex.adjacent_via_boundary_edge_to(bv) ) {
+                        discovered.push( bv );
                     }
-
                 });
+
+                boundaryVertices = boundaryVertices.filter( bv => discovered.indexOf(bv) < 0 );
 
             }
 
-            boundaryVertices = boundaryVertices.filter( bv => component.indexOf(bv) < 0 );
-
-            boundaryComponents.push( new Set(component) );
+            boundaryComponents.push( boundaryComponent );
 
         }
 
