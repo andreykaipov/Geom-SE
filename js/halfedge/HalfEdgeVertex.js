@@ -109,7 +109,7 @@ class HalfEdgeVertex {
         }
     }
 
-    adjacent_to_via_boundary_edge( target ) {
+    adjacent_via_boundary_edge_to( target ) {
 
         let current = this.outHalfEdge;
 

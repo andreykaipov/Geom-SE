@@ -3,7 +3,7 @@
 class HalfEdgeFace {
 
     constructor() {
-        
+
         this.adjHalfEdge = null;
         this.oriented = false;
 
@@ -72,7 +72,7 @@ class HalfEdgeFace {
 
                 let oppFaceAdjHalfEdges = he.oppFace.adj_half_edges;
                 let oppFaceAdjVertices = he.oppFace.adj_vertices;
-                let oppSides = oppAdjHalfEdges.length;
+                let oppSides = oppFaceAdjHalfEdges.length;
 
                 console.log("Orienting the face on the vertices:\n");
 
@@ -88,7 +88,7 @@ class HalfEdgeFace {
 
                 });
 
-                if ( he.oppFace.adj_half_edges[0] !== he.oppFace.adj_half_edges.shift().nextHalfEdge ) {
+                if ( he.oppFace.adj_half_edges[0] !== he.oppFace.adj_half_edges[oppSides - 1].nextHalfEdge ) {
                     throw new Error("New face orientation does not loop around.");
                 }
 
