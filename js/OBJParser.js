@@ -67,7 +67,7 @@ class OBJParser {
 
                 nonVertexLines.push( line );
 
-                if ( line[0] === 'g' && line[1] === ' ' ) {
+                if ( line[0] === 'g' && (line[1] === ' ' || line[1] === '\t') ) {
 
                     namedGroupedExists = true;
 
@@ -85,10 +85,10 @@ class OBJParser {
 
         nonVertexLines.forEach( line => {
 
-            if ( line[0] === 'g' && line[1] === ' ' ) {
+            if ( line[0] === 'g' && (line[1] === ' ' || line[1] === '\t') ) {
 
                 let mesh = {
-                    name: line.substr( 2 ),
+                    name: line.substr( 1 ).trim(),
                     vertices: new Map(),
                     faces: []
                 };
