@@ -20,7 +20,6 @@ function createGUI() {
     createGuiRotation( gui );
     createGuiTranslation( gui );
     createGuiMaterial( gui );
-    createTriangulation( gui );
     createUploadObjFile( gui );
     createComputeInfo( gui );
 
@@ -102,7 +101,9 @@ function createGuiRotation( gui ) {
         function ( value ) { selectedMesh.rotation.x = value; }
     );
     rotationFolder.add( parameters, 'rotationY', -Math.PI, Math.PI ).name( "rotate on y" ).onChange(
-        function( value ) { selectedMesh.rotation.y = value; }
+        function( value ) {
+            selectedMesh.rotation.y = value;
+        }
     );
     rotationFolder.add( parameters, 'rotationZ', -Math.PI, Math.PI ).name( "rotate on z" ).onChange(
         function( value ) { selectedMesh.rotation.z = value; }
@@ -163,7 +164,8 @@ function createGuiTranslation( gui ) {
         // Reset object translation and reset gui sliders.
         resetTranslation: function() {
             parameters.translationX = parameters.translationY = parameters.translationZ = 0;
-            selectedMesh.position.set( 0, 0, 0 );
+            var centroid = selectedMesh.centroid;
+            selectedMesh.position.set( centroid.x, centroid.y, centroid.z );
         }
     }, 'resetTranslation' ).name( "reset translation" );
 
@@ -218,16 +220,18 @@ function createGuiMaterial( gui ) {
 
     materialFolder.add( parameters, 'shading', constants.shadingOptions ).onChange(
         function( value ) {
-            selectedMesh.shading = (selectedMesh.shading === 1) ? 2 : 1;
-            selectedMesh.needsUpdate = true;
+            if ( value === "1" ) selectedMesh.material.shading = THREE.FlatShading;
+            else if ( value === "2" ) selectedMesh.material.shading = THREE.SmoothShading;
+
+            selectedMesh.material.needsUpdate = true;
         }
     );
 
     materialFolder.add( parameters, 'side', constants.sideOptions ).onChange(
         function( value ) {
-            if ( value == 0 ) selectedMesh.material.side = 0;
-            if ( value == 1 ) selectedMesh.material.side = 1;
-            if ( value == 2 ) selectedMesh.material.side = 2;
+            if ( value === "0" ) selectedMesh.material.side = THREE.FrontSide;
+            else if ( value === "1" ) selectedMesh.material.side = THREE.BackSide;
+            else if ( value === "2" ) selectedMesh.material.side = THREE.DoubleSide;
 
             selectedMesh.material.needsUpdate = true;
         }
@@ -262,93 +266,3 @@ function createUploadObjFile( gui ) {
 
 }
 
-
-function createTriangulation( gui ) {
-
-    gui.add({
-        triangulate: function() {
-
-            if ( selectedMesh == null ) {
-                alert("Nothing to triangulate!");
-                return -1;
-            }
-
-            // See http://stackoverflow.com/a/8197770/4085283 for the idea.
-            $.ajax({
-                url : selectedMesh.userData.filePath,
-                success : function( fileAsString ) {
-
-                    if ( selectedMesh.userData.triangulated == true ) {
-                        alert("You've already triangulated this object!");
-                        return -1;
-                    }
-
-                    var triangulatedFileAsString = triangulate( fileAsString );
-                    var triangulatedFile = new Blob( [ triangulatedFileAsString ], { type: "text/plain" } );
-                    triangulatedFile.name = selectedMesh.name.slice(0,-4) + "_triangulated.obj";
-
-                    console.log( "Selected object was triangulated successfully." +
-                                 "\nThe new size is " + triangulatedFile.size + " bytes.");
-
-                    var newFilePath = window.URL.createObjectURL( triangulatedFile );
-
-                    var triangulatedObject = create3DObject( newFilePath, triangulatedFile.name, selectedObjectMaterial );
-                    triangulatedObject.name = triangulatedFile.name;
-                    triangulatedObject.userData.filePath = newFilePath;
-
-                    // Set a flag to prevent user from making redundant triangulations.
-                    triangulatedObject.userData.triangulated = true;
-
-                    // Replace the selectedObject from the loadedObjects array with the new triangulatedObject.
-                    // This is necessary for raycaster to work properly.
-                    var found = loadedObjects.indexOf(selectedMesh);
-                    loadedObjects.splice( found, 1, triangulatedObject );
-
-                    // Detach the old controls from the selectedObject and remove them from the scene.
-                    scene.getObjectByName("Controller for " + selectedMesh.id).detach();
-                    scene.remove( scene.getObjectByName("Controller for " + selectedMesh.id) );
-
-                    // Remove the selectedObject from the scene and add in the triangulatedObject.
-                    scene.remove( selectedMesh );
-                    scene.add(triangulatedObject);
-
-                    // Make a copy of the selectedObject's properties into the new triangulatedObject.
-                    triangulatedObject.scale.set( selectedMesh.scale.x, selectedMesh.scale.y, selectedMesh.scale.z );
-                    triangulatedObject.position.set( selectedMesh.position.x, selectedMesh.position.y, selectedMesh.position.z );
-                    triangulatedObject.rotation.set( selectedMesh.rotation.x, selectedMesh.rotation.y, selectedMesh.rotation.z );
-
-                    selectedMesh = triangulatedObject;
-
-                    // Give the triangulatedObject their own controls. This is similar to the loadedObject in the obj_viewer.js.
-                    var objectControls = new THREE.TransformControls( camera, renderer.domElement );
-                    objectControls.addEventListener( 'change', render );
-                    objectControls.attach( triangulatedObject );
-                    objectControls.name = "Controller for " + triangulatedObject.id;
-                    scene.add( objectControls );
-
-                    // Display the download link above the stats of the obj file.
-                    var download_link = document.getElementById("download_link");
-                    download_link.style.display = "inline";
-                    download_link.download = triangulatedFile.name;
-                    download_link.href = newFilePath;
-
-                    document.getElementById("download_hreaker").style.display = "block";
-
-                } // end success
-            }); // end ajax
-
-        }
-    }, 'triangulate').name( "triangulate!" );
-
-}
-
-
-function getTriangulationButton() {
-    var guiButtons = gui.getElementsByClassName("property-name");
-    var triangulationButton;
-    for ( var i = 0; i < guiButtons.length; i++ ) {
-        if ( guiButtons[i].innerHTML === "triangulate!" )
-            triangulationButton = guiButtons[i];
-    };
-    return triangulationButton;
-}

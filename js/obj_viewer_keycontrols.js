@@ -13,32 +13,32 @@ function updateCameraFromKeyboard() {
 
     if (keysPressedForCamera[87]) { // W
         camera.position.add( dirVector );
-        camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
+        camera.lookAt( camera.controllers.orbitControls.target = camera.getWorldDirection() );
     }
     else if (keysPressedForCamera[83]) { // D
         camera.position.sub( dirVector );
-        camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
+        camera.lookAt( camera.controllers.orbitControls.target = camera.getWorldDirection() );
     }
     else if (keysPressedForCamera[65]) { // A
         camera.position.sub( dirVector.cross( new THREE.Vector3( 0, 1, 0) ) );
-        camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
+        camera.lookAt( camera.controllers.orbitControls.target = camera.getWorldDirection() );
     }
     else if (keysPressedForCamera[68]) { // D
         camera.position.add( dirVector.cross( new THREE.Vector3( 0, 1, 0) ) );
-        camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
+        camera.lookAt( camera.controllers.orbitControls.target = camera.getWorldDirection() );
     }
     else if (keysPressedForCamera[70]) {
         camera.position.sub( new THREE.Vector3(0, 0.1, 0) );
-        // camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
+        // camera.lookAt( camera.controllers.orbitControls.target = camera.getWorldDirection() );
     }
     else if (keysPressedForCamera[82]) {
         camera.position.add( new THREE.Vector3(0, 0.1, 0) );
-        // camera.lookAt( mouseCameraControls.target = camera.getWorldDirection() );
+        // camera.lookAt( camera.controllers.orbitControls.target = camera.getWorldDirection() );
     }
     else if (keysPressedForCamera[90])
     {
         camera.position.set( 0, 0, 5 );
-        mouseCameraControls.target.set( 0, 0, 0 );
+        camera.controllers.orbitControls.target.set( 0, 0, 0 );
         camera.lookAt( 0, 0, 0 );
     }
 

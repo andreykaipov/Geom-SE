@@ -17,14 +17,18 @@ to do:
 // The renderer will display our beautifully crafted scene.
 // The mouseCameraControls allow us to move the camera around the scene with the mouse.
 // The keys array is for detecting which keys have been pressed so we can get smooth camera control.
-var scene, camera, renderer, mouseCameraControls, keysPressedForCamera = [];
+var scene, camera, renderer, keysPressedForCamera = [];
 
 // The raycaster will take care of selecting objects.
 // The mouse will be modeled as a 2D point on the user's screen.
 // The loadedMeshes array holds all of our loaded meshes that our raycaster can pick from.
 // The selectedMesh is the currently selected mesh of the currently selected object.
-var raycaster, mouse, selectedMesh
+var raycaster, mouse;
+var selectedMesh;
 var loadedMeshes = [];
+
+var transformControls;
+var boundaryBox = new THREE.BoxHelper( new THREE.Mesh() );
 
 init();
 lights();
@@ -50,17 +54,26 @@ function init() {
     // The renderer provides a place for ThreeJS to draw our scene.
     // Specifically, it provides a <canvas> element we can add to our HTML document.
     renderer = new THREE.WebGLRenderer( { alpha: true } );
-    renderer.setClearColor( 0x010101, 0.1 );
+    renderer.setClearColor( 0x3a3a3a, 1 );
     document.getElementById("graphicsContainer").appendChild( renderer.domElement );
     renderer.setSize( canvasWidth, canvasHeight );
 
     // These controls allow us to move around the canvas with our mouse.
     // The keyboard controls are taken care of separately as event listeners.
-    mouseCameraControls = new THREE.OrbitControls( camera, renderer.domElement );
+    var orbitControls = new THREE.OrbitControls( camera, renderer.domElement );
+    camera.controllers = {};
+    camera.controllers.orbitControls = orbitControls;
 
     // Take care of object selection.
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
+
+
+    transformControls = new THREE.TransformControls( camera, renderer.domElement );
+    transformControls.addEventListener('change', render);
+    transformControls.visible = false;
+    scene.add(boundaryBox);
+    scene.add(transformControls);
 
     // Adds debug axes centered at (0,0,0). Remember: xyz ~ rgb. Solid is positive, dashed is negative.
     createAxes( 100 );
@@ -84,7 +97,7 @@ function lights() {
 /* Loads our 3D Object into a container object, and returns the container. This seems kind of silly
    (because why not just return our 3D Object?), but we do this because loading is asynchronous. This might
    seem like a poor trick, but it's from mrdoob himself http://stackoverflow.com/a/22977590/4085283. */
-function add3DObject() {
+function add3DObject( event ) {
 
     var file = event.target.files[0];
     var filePath = window.URL.createObjectURL( file );
@@ -92,6 +105,8 @@ function add3DObject() {
 
     $.ajax({
         url: filePath,
+        contentType: "text/plain",
+        mimeType: 'text/plain; charset=x-user-defined',
         success: function( fileAsString ) {
             var object = loader.parse( OBJParser.triangulateConvex( fileAsString ) );
             object.name = file.name;
@@ -101,13 +116,14 @@ function add3DObject() {
             applyDefaultMaterial( object );
             normalizeAndCenterGeometries( object );
             recognizeMeshesOfObjectForRaycasterSelection( object );
-
-            var objectControls = addTransformControls( object );
-            showOnlyTheseControls( objectControls );
+            attachTransformControlsTo( object );
+            var boundaryBox = new THREE.BoxHelper( new THREE.Mesh(object.mergedGeometry, null) );
+            boundaryBox.name = "parent object boundary box";
+            object.add(boundaryBox);
 
             // Choose the first mesh group of the object as the default selectedMesh.
-            selectedMesh = object.children[0];
-            showInfoForMesh( selectedMesh );
+            selectedMesh = null;
+            // showInfoForMesh( selectedMesh );
 
             scene.add( object );
 
@@ -119,6 +135,11 @@ function add3DObject() {
 
 }
 
+function attachTransformControlsTo( thing ) {
+
+    transformControls.attach( thing );
+
+}
 
 function applyDefaultMaterial( object ) {
 
@@ -145,19 +166,44 @@ function normalizeAndCenterGeometries( object ) {
         if ( child instanceof THREE.Mesh ) {
             var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
             mergedGeometry.merge( geometry );
+
+            geometry.computeFaceNormals();
+            geometry.mergeVertices();
+            geometry.computeVertexNormals();
+
+            child.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
         }
     });
+
     mergedGeometry.computeBoundingSphere();
     var r = mergedGeometry.boundingSphere.radius;
-    object.scale.set( 1/r, 1/r, 1/r );
+    mergedGeometry.scale( 1/r, 1/r, 1/r );
+    object.mergedGeometry = mergedGeometry;
 
-    // Now we center each geometry with respect to the mergedGeometry's bounding box.
-    // This is similar to what three.js r74 does on line 10030 for centering. I'm surprised this worked here!
-    mergedGeometry.computeBoundingBox();
-    var offset = mergedGeometry.boundingBox.center().negate();
+    // object.scale.set( 1/r, 1/r, 1/r );
+    //
+    // // Now we center each geometry with respect to the mergedGeometry's bounding box.
+    // // This is similar to what three.js r74 does on line 10030 for centering. I'm surprised this worked here!
+    // mergedGeometry.computeBoundingBox();
+    // var offset = mergedGeometry.boundingBox.center().negate();
+
     object.children.forEach( function( child ) {
         if ( child instanceof THREE.Mesh ) {
-            child.geometry.translate( offset.x, offset.y, offset.z );
+            var mesh = child;
+            mesh.geometry.scale( 1/r, 1/r, 1/r );
+
+            mesh.geometry.computeBoundingBox();
+
+            var centroid = new THREE.Vector3();
+            centroid.addVectors( mesh.geometry.boundingBox.max, mesh.geometry.boundingBox.min );
+            centroid.multiplyScalar( 0.5 );
+
+            mesh.geometry.translate( - centroid.x, - centroid.y, - centroid.z );
+            mesh.position.set( centroid.x, centroid.y, centroid.z );
+
+            // Store for later.
+            child.centroid = centroid;
+
         }
     });
 
@@ -175,36 +221,41 @@ function recognizeMeshesOfObjectForRaycasterSelection( object ) {
 }
 
 
-// Adds transformsControls for a given object.
-// Returns the created controls.
-function addTransformControls( object ) {
+function showTransformControls( thing ) {
 
-    var objectControls = new THREE.TransformControls( camera, renderer.domElement );
-    // objectControls.addEventListener( 'change', render ); // don't know if i need this...
-    objectControls.attach( object );
-    scene.add( objectControls );
-    objectControls.name = "Controller for " + object.id;
-    return objectControls;
+    var oldControls = scene.getObjectByName("LonelyTransformControls")
+    scene.remove( oldControls );
+
+    var controls = new THREE.TransformControls( camera, renderer.domElement );
+    controls.name = "LonelyTransformControls";
+    controls.attach( thing );
+    controls.addEventListener( 'change', render );
+    scene.add( controls );
+
+    return controls;
 
 }
 
 
-// Show only the selected object's transform controls.
-// Making the controls invisible still allows them to be clickable, so we make them really small too.
-function showOnlyTheseControls( objectControls ) {
+function showMeshBoundingBox( mesh ) {
 
-    scene.children.forEach( function( child ) {
-        if ( child instanceof THREE.TransformControls ) {
-            if ( child !== objectControls ) {
-                child.visible = false;
-                child.setSize(0.00001);
-            }
-            else {
-                child.visible = true;
-                child.setSize(1);
-            }
-        }
-    });
+    var oldBox = scene.getObjectByName("LonelyBoundaryBox");
+    if (oldBox) oldBox.parent.remove( oldBox );
+
+    var bBox = new THREE.BoxHelper( mesh );
+    bBox.name = "LonelyBoundaryBox";
+    scene.add( bBox );
+
+}
+
+function showObjectBoundingBox( object ) {
+
+    var material = new THREE.MeshBasicMaterial( 0xff0000 );
+    var representativeMesh = new THREE.Mesh( object.mergedGeometry, material );
+    var bBox = new THREE.BoxHelper( representativeMesh );
+    bBox.name = "LonelyBoundaryBox";
+    ( bBox );
+    // showMeshBoundingBox( representativeMesh );
 
 }
 
@@ -247,9 +298,7 @@ function showInfoForMesh( mesh ) {
     document.getElementById("faces").innerHTML = "Faces: " + mesh.userData.faces;
     document.getElementById("characteristic").innerHTML = "Characteristic: " + mesh.userData.characteristic;
     document.getElementById("genus").innerHTML = "Genus: " + mesh.userData.genus;
-
 }
-
 
 
 /* This recursively animates the scene using the awesome requestAnimationFrame. */
@@ -259,26 +308,45 @@ function animate() {
         requestAnimationFrame( animate );
     }, 1000 / 30 ); // frame count goes to the denominator.
 
-    if ( selectedMesh ) {
-        var objectControls = scene.getObjectByName("Controller for " + selectedMesh.parent.id);
-        objectControls.update();
-    }
-
+    update();
     render();
 }
 
-/* This just renders the scene with respect to a camera once. */
+function update() {
+    updateSelectedMesh();
+    updateTransformControls();
+}
+
+function updateSelectedMesh() {
+    if ( selectedMesh ) {
+        boundaryBox.update( selectedMesh );
+        transformControls.attach( selectedMesh );
+    }
+}
+
+function updateTransformControls() {
+    transformControls.update();
+}
+
+// Render the scene with respect to a camera.
 function render() {
     renderer.render( scene, camera );
 }
 
 /* ==================== EVENT LISTENERS ==================== */
 
+(function() {
+
+var longPress = 1000;
+var start;
+
 window.addEventListener( "resize", resizeCanvas );
 document.getElementById("i_file").addEventListener( 'change', add3DObject );
 
-document.getElementById("graphicsContainer").addEventListener( 'mousedown', onCanvasMouseDown );
-document.getElementById("graphicsContainer").addEventListener( 'touchstart', onCanvasTouchStart );
+// document.getElementById("graphicsContainer").addEventListener( 'touchstart', onCanvasTouchStart );
+document.getElementById("graphicsContainer").addEventListener( 'mousedown',raycasterSelectMesh );
+document.getElementById("graphicsContainer").addEventListener( 'dblclick', raycasterSelectMesh );
+// document.getElementById("graphicsContainer").addEventListener( 'mouseup', raycasterSelectMesh );
 
 function resizeCanvas() {
 
@@ -288,17 +356,40 @@ function resizeCanvas() {
 
 }
 
-/* The following two functions take care of our raycaster selecting objects. For reference,
-   see the example http://mrdoob.github.io/three.js/examples/canvas_interactive_cubes.html */
-function onCanvasTouchStart( event ) {
-
-    event.clientX = event.touches[0].clientX;
-    event.clientY = event.touches[0].clientY;
-    onCanvasMouseDown( event );
-
+function onObjectTransformControlsDown( event ) {
+    var object = event.target.object;
+    var bBox = object.getObjectByName("parent object boundary box");
+    object.children.forEach( function( child ) {
+        if ( child instanceof THREE.Mesh ) {
+            bBox.visible = true;
+            child.oldPosition = child.position.clone();
+            child.position.set( child.centroid.x, child.centroid.y, child.centroid.z );
+        }
+    });
 }
 
-function onCanvasMouseDown( event ) {
+function onObjectTransformControlsUp( event ) {
+    var object = event.target.object;
+    var bBox = object.getObjectByName("parent object boundary box");
+    object.children.forEach( function( child ) {
+        if ( child instanceof THREE.Mesh ) {
+            bBox.visible = false;
+            child.position.set( child.oldPosition.x, child.oldPosition.y, child.oldPosition.z );
+        }
+    });
+}
+
+// Give the object the controls, hide its bBox, and don't point to any mesh.
+function switchFocusToObject() {
+    var object = selectedMesh.parent;
+    transformControls.attach( object );
+    var bBox = object.getObjectByName("parent object boundary box");
+    boundaryBox.visible = false;
+    selectedMesh = null;
+}
+
+// Raycaster selection of objects. See the example http://mrdoob.github.io/three.js/examples/canvas_interactive_cubes.html
+function raycasterSelectMesh( event ) {
 
     mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
@@ -312,11 +403,51 @@ function onCanvasMouseDown( event ) {
         // intersects[0] is the mesh the raycaster intersects.
         selectedMesh = intersects[0].object;
 
-        console.log("You selected the " + selectedMesh.name + " mesh group of the " + selectedMesh.parent.name + " object.");
+        if ( event.altKey ) {
+            switchFocusToObject();
+            transformControls.addEventListener('mouseDown', onObjectTransformControlsDown);
+            transformControls.addEventListener('mouseUp', onObjectTransformControlsUp);
+        }
+        else {
+            console.log("You selected the " + selectedMesh.name + " mesh group of the " + selectedMesh.parent.name + " object.");
 
-        showInfoForMesh( selectedMesh );
-        showOnlyTheseControls( scene.getObjectByName("Controller for " + selectedMesh.parent.id) );
+            showInfoForMesh( selectedMesh );
+
+            transformControls.removeEventListener('mouseDown', onObjectTransformControlsDown );
+            transformControls.removeEventListener('mouseUp', onObjectTransformControlsDown );
+
+            boundaryBox.visible = true;
+            scene.children.forEach( function( child ) {
+                if ( child instanceof THREE.Group ) {
+                    var bBox = child.getObjectByName("parent object boundary box");
+                    bBox.visible = false;
+                }
+            });
+
+            // showOnlyTheseControls( scene.getObjectByName("Controller for " + selectedMesh.id) );
+            // showTransformControls( selectedMesh );
+            // showMeshBoundingBox( selectedMesh );
+            // if ( event.type === "dblclick" ) {
+            //     camera.lookAt( selectedMesh.position );
+            //     camera.controllers.orbitControls.target = selectedMesh.position.clone();
+            // }
+        }
 
     }
 
 }
+//
+// function onCanvasMouseDown( event ) {
+//     start = new Date().getTime();
+// }
+//
+// function onCanvasMouseUp( event ) {
+//     if ( new Date().getTime() - start >= longPress ) {
+//         alert("long press");
+//     }
+//     else {
+//         raycasterSelectMesh( event );
+//     }
+// }
+
+})();
