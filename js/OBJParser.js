@@ -79,7 +79,7 @@ class OBJParser {
 
         if ( ! namedGroupedExists ) {
 
-            nonVertexLines.unshift("g ~ NO GROUP NAME ~");
+            nonVertexLines.unshift("g NO GROUP NAME FOUND");
 
         }
 

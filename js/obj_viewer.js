@@ -37,7 +37,6 @@ init();
 lights();
 animate();
 
-
 /* Initializes our scene, camera, renderer, and controls. */
 function init() {
 
@@ -73,7 +72,7 @@ function init() {
 
 
     transformControls = new THREE.TransformControls( camera, renderer.domElement );
-    transformControls.addEventListener('change', render);
+    transformControls.addEventListener( 'change', render );
     transformControls.visible = false;
     scene.add(selectedMeshBoundaryBox);
     scene.add(transformControls);
@@ -111,6 +110,9 @@ function add3DObject( event ) {
         contentType: "text/plain",
         mimeType: 'text/plain; charset=x-user-defined',
         success: function( fileAsString ) {
+
+            selectedMesh = null;
+
             var object = loader.parse( OBJParser.triangulateConvex( fileAsString ) );
             object.name = file.name;
             object.userData.filePath = filePath;
@@ -118,19 +120,21 @@ function add3DObject( event ) {
 
             applyDefaultMaterial( object );
             normalizeAndCenterGeometries( object );
+            computeFaceAndVertexNormals( object );
+            findMeshCounts( object );
             recognizeMeshesOfObjectForRaycasterSelection( object );
             attachTransformControlsTo( object );
 
-            selectedMesh = object.children[0];
-
-            if ( object.meshCount !== 1 ) {
+            // if ( object.meshCount > 1 ) {
                 var boundaryBox = new THREE.BoxHelper( new THREE.Mesh(object.mergedGeometry, null) );
                 object.boundaryBox = boundaryBox;
                 object.add(boundaryBox);
-            }
+            // }
+            // else {
+            //     selectedMesh = object.children[ 0 ];
+            // }
 
-            // Choose the first mesh group of the object as the default selectedMesh.
-            // showInfoForMesh( selectedMesh );
+            showSelectionTextForObject( object );
 
             scene.add( object );
 
@@ -162,96 +166,136 @@ function applyDefaultMaterial( object ) {
 }
 
 
-// With r74 OBJLoader, o and g tags are processed as their own separate meshes (and hence their own geometries).
-// Because of this, we have to jump through a couple of hoops to normalize and center the entire object properly.
+// As of r74 OBJLoader, o and g tags are processed as their own separate meshes (and hence their own geometries).
+// Because of this, we have to jump through a couple of hoops to properly normalize and center the entire object.
+//   1. Merge the inidividual geometries, and then normalize and center the merged geometry.
+//   2. Scale the inidividual geometries down by the merged geometry's bounding sphere's radius.
+//   3. Center each inidividual geometry at the origin with respect to its own bounding box.
+//   4. Move each mesh corresponding to each individual geometry back to where it just was in step 3.
+//   5. Now, center each mesh at the origin with respect to the merged geometry's bounding box.
+// This method is as short as I can get it without losing the nderstanding of it!
 function normalizeAndCenterGeometries( object ) {
 
-    // Merge all of the geometries to find the the correct bounding sphere for the correct object.
-    // Merging BufferGeometries don't work for some reason, so we convert them into a regular geometry.
+    // Merging BufferGeometries don't work for some reason, so convert them into a regular geometry.
     var mergedGeometry = new THREE.Geometry();
+
     object.children.forEach( function( child ) {
+
         if ( child instanceof THREE.Mesh ) {
+
             var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
             mergedGeometry.merge( geometry );
+
+        }
+
+    });
+
+    // Scale down merged geometry. Keep the r to scale down the composing geometries...
+    mergedGeometry.computeBoundingSphere();
+    var r = mergedGeometry.boundingSphere.radius;
+    mergedGeometry.scale( 1/r, 1/r, 1/r );
+
+    // Center it. Keep the offset to center the composing geometries with respect to the merged geometry.
+    mergedGeometry.computeBoundingBox();
+    var mergedCentroid = mergedGeometry.boundingBox.center();
+    var mergedOffset = mergedCentroid.clone().multiplyScalar( -1 );
+    mergedGeometry.translate( mergedOffset.x, mergedOffset.y, mergedOffset.z );
+
+    object.mergedGeometry = mergedGeometry;
+    object.mergedCentroid = mergedCentroid;
+
+    var meshCount = 0;
+
+    // Traverse again, now to normalize each individual geometry.
+    object.children.forEach( function( child ) {
+
+        if ( child instanceof THREE.Mesh ) {
+
+            child.geometry.scale( 1/r, 1/r, 1/r );
+
+            child.geometry.computeBoundingBox();
+            var centroid = child.geometry.boundingBox.center();
+            var offset = centroid.clone().negate();
+
+            child.geometry.translate( offset.x, offset.y, offset.z );
+            child.position.set( centroid.x, centroid.y, centroid.z );
+            child.position.add( mergedOffset );
+
+            child.centroid = centroid;
+
+        }
+
+    });
+
+}
+
+// Counts the number of meshes in an object.
+function findMeshCounts( object ) {
+
+    object.meshCount = 0;
+
+    object.children.forEach( function( child ) {
+
+        if ( child instanceof THREE.Mesh ) {
+
+            object.meshCount += 1;
+
+        }
+
+    });
+
+}
+
+// Computes the face and vertex normals of each composing mesh of each object.
+function computeFaceAndVertexNormals( object ) {
+
+    object.children.forEach( function( child ) {
+
+        if ( child instanceof THREE.Mesh ) {
+
+            var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
 
             geometry.computeFaceNormals();
             geometry.mergeVertices();
             geometry.computeVertexNormals();
 
+            child.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
+
         }
+
     });
 
-    mergedGeometry.computeBoundingSphere();
-    var r = mergedGeometry.boundingSphere.radius;
-    mergedGeometry.scale( 1/r, 1/r, 1/r );
-    object.mergedGeometry = mergedGeometry;
-
-    var count = 0;
-    // Traverse again, now to normalize each individual geometry.
-    // Also, we find the center of the geometry so that rotation of the mesh can be around itself.
-    object.children.forEach( function( child ) {
-        if ( child instanceof THREE.Mesh ) {
-
-            var mesh = child;
-
-            // Scale it down.
-            mesh.geometry.scale( 1/r, 1/r, 1/r );
-
-            // Find the centroid of geometry.
-            var centroid = new THREE.Vector3();
-            mesh.geometry.computeBoundingBox();
-            centroid.addVectors( mesh.geometry.boundingBox.max, mesh.geometry.boundingBox.min );
-            centroid.multiplyScalar( 0.5 );
-
-            // Move geometry to origin.
-            mesh.geometry.translate( - centroid.x, - centroid.y, - centroid.z );
-
-            // Move the mesh back to where the geometry was just before.
-            mesh.position.set( centroid.x, centroid.y, centroid.z );
-
-            // Store for later use.
-            child.centroid = centroid;
-
-            count += 1;
-        }
-    });
-
-    if ( count === 1 ) {
-        object.position.set(0,0,0);
-        object.children.forEach( function( child ) {
-            if ( child instanceof THREE.Mesh ) {
-                child.position.set( 0, 0, 0 );
-            }
-        });
-    }
-
-    object.meshCount = count;
 }
-
 
 function recognizeMeshesOfObjectForRaycasterSelection( object ) {
 
     object.children.forEach( function( child ) {
+
         if ( child instanceof THREE.Mesh ) {
+
             loadedMeshes.push( child );
+
         }
+
     });
 
 }
 
+function showSelectionTextForObject( object ) {
 
-function showTransformControls( thing ) {
+    $('#selected_obj').text( "Currently selected object: " + object.name );
+    $('#obj_mesh_count').text( "Number of mesh groups in object: " + object.meshCount );
+    $('#selected_mesh').text( "No mesh group currently selected." );
 
-    var oldControls = scene.getObjectByName("LonelyTransformControls")
-    scene.remove( oldControls );
+}
 
-    var controls = new THREE.TransformControls( camera, renderer.domElement );
-    controls.name = "LonelyTransformControls";
-    controls.attach( thing );
-    controls.addEventListener( 'change', render );
-    scene.add( controls );
+function showSelectionTextForMesh( mesh ) {
 
-    return controls;
+    if ( mesh.name === "" ) mesh.name = "NO GROUP NAME FOUND";
+
+    $('#selected_obj').text( "Currently selected object: " + mesh.parent.name );
+    $('#obj_mesh_count').text( "Number of mesh groups in object: " + mesh.parent.meshCount );
+    $('#selected_mesh').text( "Currently selected object: " + mesh.name );
 
 }
 
@@ -279,35 +323,6 @@ function computeInfoForMesh( mesh ) {
     console.log(heMesh);
 
 }
-
-
-function showInfoForMesh( mesh ) {
-
-    if ( mesh.name === "" ) { mesh.name = "~ NO GROUP NAME ~"; }
-
-    document.getElementById("selected_obj").innerHTML = "Currently selected object: " + mesh.parent.name;
-    document.getElementById("selected_mesh").innerHTML = "Currently selected mesh group: " + mesh.name;
-    document.getElementById("selected_hreaker").style.display = "block";
-    document.getElementById("vertices").innerHTML = "Vertices: " + mesh.userData.vertices;
-    document.getElementById("edges").innerHTML = "Edges: " + mesh.userData.edges;
-    document.getElementById("faces").innerHTML = "Faces: " + mesh.userData.faces;
-    document.getElementById("characteristic").innerHTML = "Characteristic: " + mesh.userData.characteristic;
-    document.getElementById("genus").innerHTML = "Genus: " + mesh.userData.genus;
-}
-
-function hideInfo() {
-
-    document.getElementById("selected_obj").innerHTML = "";
-    document.getElementById("selected_mesh").innerHTML = "";
-    document.getElementById("selected_hreaker").style.display = "none";
-    document.getElementById("vertices").innerHTML = "";
-    document.getElementById("edges").innerHTML = "";
-    document.getElementById("faces").innerHTML = "";
-    document.getElementById("characteristic").innerHTML = "";
-    document.getElementById("genus").innerHTML = "";
-
-}
-
 
 function animate() {
 
@@ -366,23 +381,6 @@ function resizeCanvas() {
 
 }
 
-function onObjectTransformControlsDown( event ) {
-    console.log(event);
-    var object = event.target.object.parent;
-    attachTransformControlsTo( object );
-}
-
-function onObjectTransformControlsUp( event ) {
-    var object = event.target.object;
-    var bBox = object.boundaryBox;
-    object.children.forEach( function( child ) {
-        if ( child instanceof THREE.Mesh ) {
-            bBox.visible = false;
-            child.position.set( child.oldPosition.x, child.oldPosition.y, child.oldPosition.z );
-        }
-    });
-}
-
 // Show the bBox for the object, give it the controls, hide the selectedMesh's bBox,
 // store a reference to the mesh in the scene (lol), and don't point to any mesh.
 function switchFocusToObject() {
@@ -395,6 +393,8 @@ function switchFocusToObject() {
     scene.__oldSelectedMesh__ = selectedMesh;
     selectedMesh = null;
 
+    showSelectionTextForObject( object );
+
 }
 
 // Restore the selectedMesh reference to the global var, and show the bBox.
@@ -402,6 +402,8 @@ function switchFocusBackToMesh() {
 
     selectedMesh = scene.__oldSelectedMesh__;
     selectedMeshBoundaryBox.visible = true;
+
+    showSelectionTextForMesh( selectedMesh );
 
 }
 
@@ -436,7 +438,7 @@ document.getElementById("graphicsContainer").addEventListener( 'keydown', functi
     if ( event.keyCode === 16 ) { // Shift key
 
         // This event listener should only work for objects with more than one mesh.
-        if ( selectedMesh.parent.meshCount > 1 ) {
+        if ( selectedMesh.parent.meshCount > -1 ) {
 
             var object = selectedMesh.parent;
 
@@ -447,7 +449,8 @@ document.getElementById("graphicsContainer").addEventListener( 'keydown', functi
 
                     child.oldPosition = child.position.clone();
 
-                    child.position.set( child.centroid.x, child.centroid.y, child.centroid.z );
+                    child.position.copy( child.centroid );
+                    child.position.sub( object.mergedCentroid );
 
                 }
 
@@ -486,6 +489,7 @@ document.getElementById("graphicsContainer").addEventListener( 'keyup', function
 
             if ( child instanceof THREE.Mesh ) {
 
+                child.position.add( object.mergedCentroid );
                 child.position.set( child.oldPosition.x, child.oldPosition.y, child.oldPosition.z );
 
             }
@@ -516,13 +520,14 @@ function onCanvasMouseDown( event ) {
     if ( intersects.length > 0 ) {
 
         selectedMesh = intersects[0].object;
+        var object = selectedMesh.parent;
 
-        console.log("You selected the " + selectedMesh.name + " mesh group of the " + selectedMesh.parent.name + " object.");
+        console.log("You selected the " + selectedMesh.name + " mesh group of the " + object.name + " object.");
 
-        showInfoForMesh( selectedMesh );
+        showSelectionTextForMesh( selectedMesh );
 
         selectedMeshBoundaryBox.visible = true;
-        if ( selectedMesh.parent.meshCount > 1 ) selectedMesh.parent.boundaryBox.visible = false;
+        if ( object.boundaryBox ) object.boundaryBox.visible = false;
 
         // If double clicked, then focus in on the selected mesh for that cool effect.
         if ( event.type === "dblclick" ) {
