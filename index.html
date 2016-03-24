@@ -13,11 +13,11 @@
     <!-- jQuery UI CSS. -->
     <!-- <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.4/themes/pepper-grinder/jquery-ui.css"> -->
 
-    <link rel="stylesheet" href="https://rawgit.com/codemirror/CodeMirror/master/lib/codemirror.css">
+    <!-- <link rel="stylesheet" href="https://rawgit.com/codemirror/CodeMirror/master/lib/codemirror.css"> -->
 
     <!-- Custom styles for this page. -->
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/codemirror.css">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <!-- <link rel="stylesheet" type="text/css" href="css/codemirror.css"> -->
 </head>
 
 <body>
@@ -42,38 +42,38 @@
     <div id="graphicsContainer" tabindex="1"></div>
 
     <!-- jQuery. It's used a couple times... -->
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 
     <!-- Core Three.js library plus extras. -->
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r74/three.js"></script>
-    <script src="http://ocelot.aul.fiu.edu/~akaip002/js-libraries/OBJLoader.js"></script>     <!-- For actually loading .obj files -->
-    <script src="http://ocelot.aul.fiu.edu/~akaip002/js-libraries/TransformControls.js"></script> <!-- For mouse object controls. -->
-    <script src="http://ocelot.aul.fiu.edu/~akaip002/js-libraries/OrbitControls.js"></script> <!-- For mouse camera controls. -->
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.js"></script>   <!-- For fancy GUI sliders. -->
-    <script src="http://ocelot.aul.fiu.edu/~akaip002/js-libraries/Projector.js"></script>  <!-- For raycaster to select objects. -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r75/three.js"></script>
+    <script type="text/javascript" src="http://users.cis.fiu.edu/~akaip002/js-libraries/OBJLoader.js"></script>     <!-- For actually loading .obj files -->
+    <script type="text/javascript" src="http://users.cis.fiu.edu/~akaip002/js-libraries/TransformControls.js"></script> <!-- For mouse object controls. -->
+    <script type="text/javascript" src="http://users.cis.fiu.edu/~akaip002/js-libraries/OrbitControls.js"></script> <!-- For mouse camera controls. -->
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.js"></script>   <!-- For fancy GUI sliders. -->
+    <script type="text/javascript" src="http://ocelot.aul.fiu.edu/~akaip002/js-libraries/Projector.js"></script>  <!-- For raycaster to select objects. -->
 
     <!-- CodeMirror -->
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/codemirror/5.12.0/codemirror.js"></script>
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/codemirror/5.12.0/mode/javascript/javascript.js"></script>
+    <!-- <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/codemirror/5.12.0/codemirror.js"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/codemirror/5.12.0/mode/javascript/javascript.js"></script> -->
 
     <!-- Half-edges -->
-    <script src="js/halfedge/HalfEdge.js"></script>
-    <script src="js/halfedge/HalfEdgeHash.js"></script>
-    <script src="js/halfedge/HalfEdgeVertex.js"></script>
-    <script src="js/halfedge/HalfEdgeFace.js"></script>
-    <script src="js/halfedge/HalfEdgeMesh.js"></script>
+    <script type="text/javascript" src="js/halfedge/HalfEdge.js"></script>
+    <script type="text/javascript" src="js/halfedge/HalfEdgeHash.js"></script>
+    <script type="text/javascript" src="js/halfedge/HalfEdgeVertex.js"></script>
+    <script type="text/javascript" src="js/halfedge/HalfEdgeFace.js"></script>
+    <script type="text/javascript" src="js/halfedge/HalfEdgeMesh.js"></script>
 
-    <script src="js/OBJParser.js"></script>
+    <script type="text/javascript" src="js/OBJParser.js"></script>
 
 
-    <script src="js/dragResize.js"></script>           <!-- Draggable Div Resize -->
-    <script src="js/xyzAxes.js"></script>       <!-- Displays debug axes -->
-    <script src="js/obj_viewer.js"></script>    <!-- Displays the model -->
-    <script src="js/obj_viewer_keycontrols.js"></script> <!-- keyboard events for obj viewer -->
-    <script src="js/gui.js"></script>           <!-- Make the GUI functional -->
+    <script type="text/javascript" src="js/dragResize.js"></script>           <!-- Draggable Div Resize -->
+    <script type="text/javascript" src="js/xyzAxes.js"></script>       <!-- Displays debug axes -->
+    <script type="text/javascript" src="js/obj_viewer.js"></script>    <!-- Displays the model -->
+    <script type="text/javascript" src="js/obj_viewer_keycontrols.js"></script> <!-- keyboard events for obj viewer -->
+    <script type="text/javascript" src="js/gui.js"></script>           <!-- Make the GUI functional -->
 
     <!-- The following css makes the gui text larger. Has to be after the dat.gui js file. -->
-    <style>
+    <style type="text/css">
         .dg {
             color: #fff;
             font-size: 14px;
@@ -87,7 +87,7 @@
     </style>
 
     <!-- Google analytics. -->
-    <script>
+    <script type="text/javascript">
     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)

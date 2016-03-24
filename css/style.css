@@ -1,5 +1,7 @@
 body {
     margin: 0px;
+    font-family: monospace;
+    color: white;
 }
 
 canvas {

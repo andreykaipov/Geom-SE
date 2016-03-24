@@ -28,7 +28,10 @@ var selectedMesh;
 var loadedMeshes = [];
 
 var transformControls;
-var boundaryBox = new THREE.BoxHelper( new THREE.Mesh() );
+
+// This bounding box is easier to work with if its global,
+// rather than making it a child to the mesh it's designated for.
+var selectedMeshBoundaryBox = new THREE.BoxHelper( new THREE.Mesh() );
 
 init();
 lights();
@@ -72,7 +75,7 @@ function init() {
     transformControls = new THREE.TransformControls( camera, renderer.domElement );
     transformControls.addEventListener('change', render);
     transformControls.visible = false;
-    scene.add(boundaryBox);
+    scene.add(selectedMeshBoundaryBox);
     scene.add(transformControls);
 
     // Adds debug axes centered at (0,0,0). Remember: xyz ~ rgb. Solid is positive, dashed is negative.
@@ -117,12 +120,16 @@ function add3DObject( event ) {
             normalizeAndCenterGeometries( object );
             recognizeMeshesOfObjectForRaycasterSelection( object );
             attachTransformControlsTo( object );
-            var boundaryBox = new THREE.BoxHelper( new THREE.Mesh(object.mergedGeometry, null) );
-            boundaryBox.name = "parent object boundary box";
-            object.add(boundaryBox);
+
+            selectedMesh = object.children[0];
+
+            if ( object.meshCount !== 1 ) {
+                var boundaryBox = new THREE.BoxHelper( new THREE.Mesh(object.mergedGeometry, null) );
+                object.boundaryBox = boundaryBox;
+                object.add(boundaryBox);
+            }
 
             // Choose the first mesh group of the object as the default selectedMesh.
-            selectedMesh = null;
             // showInfoForMesh( selectedMesh );
 
             scene.add( object );
@@ -171,7 +178,6 @@ function normalizeAndCenterGeometries( object ) {
             geometry.mergeVertices();
             geometry.computeVertexNormals();
 
-            child.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
         }
     });
 
@@ -180,33 +186,46 @@ function normalizeAndCenterGeometries( object ) {
     mergedGeometry.scale( 1/r, 1/r, 1/r );
     object.mergedGeometry = mergedGeometry;
 
-    // object.scale.set( 1/r, 1/r, 1/r );
-    //
-    // // Now we center each geometry with respect to the mergedGeometry's bounding box.
-    // // This is similar to what three.js r74 does on line 10030 for centering. I'm surprised this worked here!
-    // mergedGeometry.computeBoundingBox();
-    // var offset = mergedGeometry.boundingBox.center().negate();
-
+    var count = 0;
+    // Traverse again, now to normalize each individual geometry.
+    // Also, we find the center of the geometry so that rotation of the mesh can be around itself.
     object.children.forEach( function( child ) {
         if ( child instanceof THREE.Mesh ) {
+
             var mesh = child;
+
+            // Scale it down.
             mesh.geometry.scale( 1/r, 1/r, 1/r );
 
-            mesh.geometry.computeBoundingBox();
-
+            // Find the centroid of geometry.
             var centroid = new THREE.Vector3();
+            mesh.geometry.computeBoundingBox();
             centroid.addVectors( mesh.geometry.boundingBox.max, mesh.geometry.boundingBox.min );
             centroid.multiplyScalar( 0.5 );
 
+            // Move geometry to origin.
             mesh.geometry.translate( - centroid.x, - centroid.y, - centroid.z );
+
+            // Move the mesh back to where the geometry was just before.
             mesh.position.set( centroid.x, centroid.y, centroid.z );
 
-            // Store for later.
+            // Store for later use.
             child.centroid = centroid;
 
+            count += 1;
         }
     });
 
+    if ( count === 1 ) {
+        object.position.set(0,0,0);
+        object.children.forEach( function( child ) {
+            if ( child instanceof THREE.Mesh ) {
+                child.position.set( 0, 0, 0 );
+            }
+        });
+    }
+
+    object.meshCount = count;
 }
 
 
@@ -235,30 +254,6 @@ function showTransformControls( thing ) {
     return controls;
 
 }
-
-
-function showMeshBoundingBox( mesh ) {
-
-    var oldBox = scene.getObjectByName("LonelyBoundaryBox");
-    if (oldBox) oldBox.parent.remove( oldBox );
-
-    var bBox = new THREE.BoxHelper( mesh );
-    bBox.name = "LonelyBoundaryBox";
-    scene.add( bBox );
-
-}
-
-function showObjectBoundingBox( object ) {
-
-    var material = new THREE.MeshBasicMaterial( 0xff0000 );
-    var representativeMesh = new THREE.Mesh( object.mergedGeometry, material );
-    var bBox = new THREE.BoxHelper( representativeMesh );
-    bBox.name = "LonelyBoundaryBox";
-    ( bBox );
-    // showMeshBoundingBox( representativeMesh );
-
-}
-
 
 function computeInfoForMesh( mesh ) {
 
@@ -300,53 +295,68 @@ function showInfoForMesh( mesh ) {
     document.getElementById("genus").innerHTML = "Genus: " + mesh.userData.genus;
 }
 
+function hideInfo() {
 
-/* This recursively animates the scene using the awesome requestAnimationFrame. */
+    document.getElementById("selected_obj").innerHTML = "";
+    document.getElementById("selected_mesh").innerHTML = "";
+    document.getElementById("selected_hreaker").style.display = "none";
+    document.getElementById("vertices").innerHTML = "";
+    document.getElementById("edges").innerHTML = "";
+    document.getElementById("faces").innerHTML = "";
+    document.getElementById("characteristic").innerHTML = "";
+    document.getElementById("genus").innerHTML = "";
+
+}
+
+
 function animate() {
-    // Limit rendering to 30 fps, equivalent to 1000 / 30 = 33.33 ms per frame.
-    setTimeout( function() {
-        requestAnimationFrame( animate );
-    }, 1000 / 30 ); // frame count goes to the denominator.
+
+    // Limit rendering to 30 fps, equivalent to 1000 / 30 = 33.33 ms per frame, i.e. frame count in the denominator.
+    setTimeout( function() { requestAnimationFrame( animate ); }, 1000 / 30 );
 
     update();
     render();
+
 }
 
 function update() {
+
     updateSelectedMesh();
     updateTransformControls();
+
 }
 
 function updateSelectedMesh() {
+
     if ( selectedMesh ) {
-        boundaryBox.update( selectedMesh );
+
+        selectedMeshBoundaryBox.update( selectedMesh );
         transformControls.attach( selectedMesh );
+
     }
+
 }
 
 function updateTransformControls() {
+
     transformControls.update();
+
 }
 
 // Render the scene with respect to a camera.
 function render() {
+
     renderer.render( scene, camera );
+
 }
 
 /* ==================== EVENT LISTENERS ==================== */
 
 (function() {
 
-var longPress = 1000;
-var start;
-
-window.addEventListener( "resize", resizeCanvas );
 document.getElementById("i_file").addEventListener( 'change', add3DObject );
 
-// document.getElementById("graphicsContainer").addEventListener( 'touchstart', onCanvasTouchStart );
-document.getElementById("graphicsContainer").addEventListener( 'mousedown',raycasterSelectMesh );
-document.getElementById("graphicsContainer").addEventListener( 'dblclick', raycasterSelectMesh );
-// document.getElementById("graphicsContainer").addEventListener( 'mouseup', raycasterSelectMesh );
+window.addEventListener( "resize", resizeCanvas );
 
 function resizeCanvas() {
 
@@ -357,20 +367,14 @@ function resizeCanvas() {
 }
 
 function onObjectTransformControlsDown( event ) {
-    var object = event.target.object;
-    var bBox = object.getObjectByName("parent object boundary box");
-    object.children.forEach( function( child ) {
-        if ( child instanceof THREE.Mesh ) {
-            bBox.visible = true;
-            child.oldPosition = child.position.clone();
-            child.position.set( child.centroid.x, child.centroid.y, child.centroid.z );
-        }
-    });
+    console.log(event);
+    var object = event.target.object.parent;
+    attachTransformControlsTo( object );
 }
 
 function onObjectTransformControlsUp( event ) {
     var object = event.target.object;
-    var bBox = object.getObjectByName("parent object boundary box");
+    var bBox = object.boundaryBox;
     object.children.forEach( function( child ) {
         if ( child instanceof THREE.Mesh ) {
             bBox.visible = false;
@@ -379,64 +383,159 @@ function onObjectTransformControlsUp( event ) {
     });
 }
 
-// Give the object the controls, hide its bBox, and don't point to any mesh.
+// Show the bBox for the object, give it the controls, hide the selectedMesh's bBox,
+// store a reference to the mesh in the scene (lol), and don't point to any mesh.
 function switchFocusToObject() {
+
     var object = selectedMesh.parent;
+    object.boundaryBox.visible = true;
     transformControls.attach( object );
-    var bBox = object.getObjectByName("parent object boundary box");
-    boundaryBox.visible = false;
+
+    selectedMeshBoundaryBox.visible = false;
+    scene.__oldSelectedMesh__ = selectedMesh;
     selectedMesh = null;
+
 }
 
+// Restore the selectedMesh reference to the global var, and show the bBox.
+function switchFocusBackToMesh() {
+
+    selectedMesh = scene.__oldSelectedMesh__;
+    selectedMeshBoundaryBox.visible = true;
+
+}
+
+// Flags to keep track of how the following two events should be handled.
+var gluingFlags = {
+    successfullyGlued: false,
+    transformControlsPressedDown: false,
+    gKeyIsDown: false
+}
+
+// We don't want for the gluing to work if the user is currently dragging an object.
+transformControls.addEventListener( 'mouseDown', function() { gluingFlags.transformControlsHeldDown = true; });
+transformControls.addEventListener( 'mouseUp', function() { gluingFlags.transformControlsHeldDown = false; });
+
+// This event glues the mesh back together when the shift key is held down.
+// If G is also pressed, then the mesh will stay glued forever and not un-glue itself when shift is lifted.
+document.getElementById("graphicsContainer").addEventListener( 'keydown', function( event ) {
+
+    if ( event.keyCode === 71 ) { // We have to test the G key first.
+
+        gluingFlags.gKeyIsDown = true;
+
+    }
+
+    // If the object is already glued together, or the transformControls are being held down, exit the listener.
+    if ( gluingFlags.successfullyGlued || gluingFlags.transformControlsPressedDown ) {
+
+        return;
+
+    }
+
+    if ( event.keyCode === 16 ) { // Shift key
+
+        // This event listener should only work for objects with more than one mesh.
+        if ( selectedMesh.parent.meshCount > 1 ) {
+
+            var object = selectedMesh.parent;
+
+            // Now glue the meshes back together by moving them to where their original center was.
+            object.children.forEach( function( child ) {
+
+                if ( child instanceof THREE.Mesh ) {
+
+                    child.oldPosition = child.position.clone();
+
+                    child.position.set( child.centroid.x, child.centroid.y, child.centroid.z );
+
+                }
+
+            });
+
+            switchFocusToObject();
+
+            gluingFlags.successfullyGlued = true;
+
+        }
+
+    }
+
+});
+
+// This event activates only when the shiftKey is let go, and if the object is currently glued together.
+document.getElementById("graphicsContainer").addEventListener( 'keyup', function( event ) {
+
+    if ( event.keyCode === 16 && gluingFlags.gKeyIsDown ) {
+
+        gluingFlags.successfullyGlued = false;
+        gluingFlags.gKeyIsDown = false;
+
+        return;
+
+    }
+    else if ( event.keyCode === 16 && gluingFlags.successfullyGlued ) {
+
+        switchFocusBackToMesh();
+        update();
+
+        var object = selectedMesh.parent;
+        object.boundaryBox.visible = false;
+
+        object.children.forEach( function( child ) {
+
+            if ( child instanceof THREE.Mesh ) {
+
+                child.position.set( child.oldPosition.x, child.oldPosition.y, child.oldPosition.z );
+
+            }
+
+        });
+
+        gluingFlags.successfullyGlued = false;
+
+    }
+
+});
+
+// document.getElementById("graphicsContainer").addEventListener( 'touchstart', onCanvasTouchStart );
+// document.getElementById("graphicsContainer").addEventListener( 'mouseup', raycasterSelectMesh );
+document.getElementById("graphicsContainer").addEventListener( 'mousedown', onCanvasMouseDown );
+document.getElementById("graphicsContainer").addEventListener( 'dblclick', onCanvasMouseDown );
+
 // Raycaster selection of objects. See the example http://mrdoob.github.io/three.js/examples/canvas_interactive_cubes.html
-function raycasterSelectMesh( event ) {
+function onCanvasMouseDown( event ) {
 
     mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
 
     raycaster.setFromCamera( mouse, camera );
 
-    var intersects = raycaster.intersectObjects( loadedMeshes );
+    var intersects = raycaster.intersectObjects( loadedMeshes, true );
 
     if ( intersects.length > 0 ) {
 
-        // intersects[0] is the mesh the raycaster intersects.
         selectedMesh = intersects[0].object;
 
-        if ( event.altKey ) {
-            switchFocusToObject();
-            transformControls.addEventListener('mouseDown', onObjectTransformControlsDown);
-            transformControls.addEventListener('mouseUp', onObjectTransformControlsUp);
-        }
-        else {
-            console.log("You selected the " + selectedMesh.name + " mesh group of the " + selectedMesh.parent.name + " object.");
+        console.log("You selected the " + selectedMesh.name + " mesh group of the " + selectedMesh.parent.name + " object.");
 
-            showInfoForMesh( selectedMesh );
+        showInfoForMesh( selectedMesh );
 
-            transformControls.removeEventListener('mouseDown', onObjectTransformControlsDown );
-            transformControls.removeEventListener('mouseUp', onObjectTransformControlsDown );
+        selectedMeshBoundaryBox.visible = true;
+        if ( selectedMesh.parent.meshCount > 1 ) selectedMesh.parent.boundaryBox.visible = false;
 
-            boundaryBox.visible = true;
-            scene.children.forEach( function( child ) {
-                if ( child instanceof THREE.Group ) {
-                    var bBox = child.getObjectByName("parent object boundary box");
-                    bBox.visible = false;
-                }
-            });
+        // If double clicked, then focus in on the selected mesh for that cool effect.
+        if ( event.type === "dblclick" ) {
 
-            // showOnlyTheseControls( scene.getObjectByName("Controller for " + selectedMesh.id) );
-            // showTransformControls( selectedMesh );
-            // showMeshBoundingBox( selectedMesh );
-            // if ( event.type === "dblclick" ) {
-            //     camera.lookAt( selectedMesh.position );
-            //     camera.controllers.orbitControls.target = selectedMesh.position.clone();
-            // }
+            camera.lookAt( selectedMesh.position );
+            camera.controllers.orbitControls.target = selectedMesh.position.clone();
+
         }
 
     }
 
 }
-//
+
 // function onCanvasMouseDown( event ) {
 //     start = new Date().getTime();
 // }
