@@ -40,7 +40,7 @@
         </ul>
     </div>
 
-    <div id="graphicsContainer" tabindex="1"></div>
+    <div id="gfxContainer" tabindex="1"></div>
 
     <!-- jQuery. It's used a couple times... -->
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
@@ -66,12 +66,16 @@
 
     <script type="text/javascript" src="js/OBJParser.js"></script>
 
-
-    <script type="text/javascript" src="js/dragResize.js"></script>           <!-- Draggable Div Resize -->
     <script type="text/javascript" src="js/xyzAxes.js"></script>       <!-- Displays debug axes -->
-    <script type="text/javascript" src="js/obj_viewer.js"></script>    <!-- Displays the model -->
-    <script type="text/javascript" src="js/obj_viewer_keycontrols.js"></script> <!-- keyboard events for obj viewer -->
-    <script type="text/javascript" src="js/gui.js"></script>           <!-- Make the GUI functional -->
+    <script type="text/javascript" src="js/OBJHandler.js"></script>
+    <script type="text/javascript" src="js/GFXViewer.js"></script>
+    <script>
+    var gfxViewer = new GFXViewer();
+    gfxViewer.initLights();
+    gfxViewer.animate();
+    gfxViewer.initEventListeners();
+    // document.getElementById("i_file").addEventListener( 'change', this.add3DObject );
+    </script>
 
     <!-- The following css makes the gui text larger. Has to be after the dat.gui js file. -->
     <style type="text/css">

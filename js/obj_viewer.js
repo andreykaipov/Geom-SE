@@ -152,134 +152,7 @@ function attachTransformControlsTo( thing ) {
 
 }
 
-function applyDefaultMaterial( object ) {
 
-    object.children.forEach( function( child ) {
-        if ( child instanceof THREE.Mesh ) {
-            child.material = new THREE.MeshPhongMaterial({
-                color: 0xffffff * Math.random(),
-                side: THREE.DoubleSide
-            });
-        }
-    });
-
-}
-
-
-// As of r74 OBJLoader, o and g tags are processed as their own separate meshes (and hence their own geometries).
-// Because of this, we have to jump through a couple of hoops to properly normalize and center the entire object.
-//   1. Merge the inidividual geometries, and then normalize and center the merged geometry.
-//   2. Scale the inidividual geometries down by the merged geometry's bounding sphere's radius.
-//   3. Center each inidividual geometry at the origin with respect to its own bounding box.
-//   4. Move each mesh corresponding to each individual geometry back to where it just was in step 3.
-//   5. Now, center each mesh at the origin with respect to the merged geometry's bounding box.
-// This method is as short as I can get it without losing the nderstanding of it!
-function normalizeAndCenterGeometries( object ) {
-
-    // Merging BufferGeometries don't work for some reason, so convert them into a regular geometry.
-    var mergedGeometry = new THREE.Geometry();
-
-    object.children.forEach( function( child ) {
-
-        if ( child instanceof THREE.Mesh ) {
-
-            var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
-            mergedGeometry.merge( geometry );
-
-        }
-
-    });
-
-    // Scale down merged geometry. Keep the r to scale down the composing geometries...
-    mergedGeometry.computeBoundingSphere();
-    var r = mergedGeometry.boundingSphere.radius;
-    mergedGeometry.scale( 1/r, 1/r, 1/r );
-
-    // Center it. Keep the offset to center the composing geometries with respect to the merged geometry.
-    mergedGeometry.computeBoundingBox();
-    var mergedCentroid = mergedGeometry.boundingBox.center();
-    var mergedOffset = mergedCentroid.clone().multiplyScalar( -1 );
-    mergedGeometry.translate( mergedOffset.x, mergedOffset.y, mergedOffset.z );
-
-    object.mergedGeometry = mergedGeometry;
-    object.mergedCentroid = mergedCentroid;
-
-    var meshCount = 0;
-
-    // Traverse again, now to normalize each individual geometry.
-    object.children.forEach( function( child ) {
-
-        if ( child instanceof THREE.Mesh ) {
-
-            child.geometry.scale( 1/r, 1/r, 1/r );
-
-            child.geometry.computeBoundingBox();
-            var centroid = child.geometry.boundingBox.center();
-            var offset = centroid.clone().negate();
-
-            child.geometry.translate( offset.x, offset.y, offset.z );
-            child.position.set( centroid.x, centroid.y, centroid.z );
-            child.position.add( mergedOffset );
-
-            child.centroid = centroid;
-
-        }
-
-    });
-
-}
-
-// Counts the number of meshes in an object.
-function findMeshCounts( object ) {
-
-    object.meshCount = 0;
-
-    object.children.forEach( function( child ) {
-
-        if ( child instanceof THREE.Mesh ) {
-
-            object.meshCount += 1;
-
-        }
-
-    });
-
-}
-
-// Computes the face and vertex normals of each composing mesh of each object.
-function computeFaceAndVertexNormals( object ) {
-
-    object.children.forEach( function( child ) {
-
-        if ( child instanceof THREE.Mesh ) {
-
-            var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
-
-            geometry.computeFaceNormals();
-            geometry.mergeVertices();
-            geometry.computeVertexNormals();
-
-            child.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
-
-        }
-
-    });
-
-}
-
-function recognizeMeshesOfObjectForRaycasterSelection( object ) {
-
-    object.children.forEach( function( child ) {
-
-        if ( child instanceof THREE.Mesh ) {
-
-            loadedMeshes.push( child );
-
-        }
-
-    });
-
-}
 
 function showSelectionTextForObject( object ) {
 
@@ -364,6 +237,14 @@ function render() {
     renderer.render( scene, camera );
 
 }
+
+function glueMeshes( object ) {
+
+
+
+}
+
+var selectedMeshes = [];
 
 /* ==================== EVENT LISTENERS ==================== */
 
@@ -489,7 +370,7 @@ document.getElementById("graphicsContainer").addEventListener( 'keyup', function
 
             if ( child instanceof THREE.Mesh ) {
 
-                child.position.add( object.mergedCentroid );
+                // child.position.add( object.mergedCentroid );
                 child.position.set( child.oldPosition.x, child.oldPosition.y, child.oldPosition.z );
 
             }

@@ -164,8 +164,8 @@ function createGuiTranslation( gui ) {
         // Reset object translation and reset gui sliders.
         resetTranslation: function() {
             parameters.translationX = parameters.translationY = parameters.translationZ = 0;
-            var centroid = selectedMesh.centroid;
-            selectedMesh.position.set( centroid.x, centroid.y, centroid.z );
+            selectedMesh.position.copy( selectedMesh.centroid );
+            selectedMesh.position.sub( selectedMesh.parent.mergedCentroid );
         }
     }, 'resetTranslation' ).name( "reset translation" );
 
