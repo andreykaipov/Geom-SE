@@ -1,33 +1,55 @@
-// http://soledadpenades.com/articles/three-js-tutorials/drawing-the-coordinate-axes/
+"use strict";
 
-function buildAxes( length ) {
-    var axes = new THREE.Object3D();
+function getAxes( length ) {
 
-    axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0xFF0000, false ) ); // +X
-    axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0xFF0000, true) ); // -X
-    axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x00FF00, false ) ); // +Y
-    axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x00FF00, true ) ); // -Y
-    axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x0000FF, false ) ); // +Z
-    axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x0000FF, true ) ); // -Z
+    let axes = new THREE.Object3D();
+    
+    axes.add( getAxis( "+x", 100 ) );
+    axes.add( getAxis( "-x", 100 ) );
+    axes.add( getAxis( "+y", 100 ) );
+    axes.add( getAxis( "-y", 100 ) );
+    axes.add( getAxis( "+z", 100 ) );
+    axes.add( getAxis( "-z", 100 ) );
 
     return axes;
+    
 }
 
-function buildAxis( src, dst, colorHex, dashed ) {
-    var geom = new THREE.Geometry(),
-        mat;
+function getAxis( axis, length ) {
 
-    if(dashed) {
-            mat = new THREE.LineDashedMaterial({ linewidth: 1, color: colorHex, dashSize: 1, gapSize: 1 });
-    } else {
-            mat = new THREE.LineBasicMaterial({ linewidth: 1, color: colorHex });
+    let sign = axis[ 0 ]; // "+" or "-"
+    let coordinate = axis[ 1 ]; // "x", "y", or "z"
+
+    // Make axis's geometry.
+    let axisGeometry = new THREE.Geometry();
+    let origin = new THREE.Vector3( 0, 0, 0 );
+    let endPoint = new THREE.Vector3( 0, 0, 0 );
+    endPoint[ coordinate ] = parseInt( sign + length );
+    axisGeometry.vertices.push( origin, endPoint );
+
+    // Make axis's material.
+    let axisMaterial = new THREE.Material();
+
+    if ( sign == "+" ) {
+
+        axisMaterial = new THREE.LineDashedMaterial({ color: getAxisColor( axis ) });
+
+    }
+    else if ( axis[0] == "-" ) {
+
+        axisGeometry.computeLineDistances();
+        axisMaterial = new THREE.LineDashedMaterial({ color: getAxisColor( axis ), gapSize: 0.2, dashSize: 0.5});
+
     }
 
-    geom.vertices.push( src.clone() );
-    geom.vertices.push( dst.clone() );
-    geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
+    return new THREE.Line( axisGeometry, axisMaterial );
 
-    var axis = new THREE.Line( geom, mat, THREE.LineSegments );
+}
 
-    return axis;
+function getAxisColor( axis ) {
+
+    if ( axis[1] == "x" ) return new THREE.Color( 0xff0000 );
+    if ( axis[1] == "y" ) return new THREE.Color( 0x00ff00 );
+    if ( axis[1] == "z" ) return new THREE.Color( 0x0000ff );
+
 }

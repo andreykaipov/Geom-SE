@@ -31,7 +31,7 @@ class GFXViewer {
         this.loadedMeshes = [];
         this.selectedMeshes = new THREE.Group();
 
-        this.scene.add( buildAxes( 100 ) );
+        this.scene.add( getAxes( 100 ) );
         // this.scene.add( this.selectedBoundingBox );
 
         this.transformControls = new THREE.TransformControls( this.camera, this.renderer.domElement );
