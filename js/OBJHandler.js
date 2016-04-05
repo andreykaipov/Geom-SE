@@ -87,25 +87,49 @@ class OBJHandler {
 
     }
 
+    static create_bounding_box_for_object( object ) {
+
+        var boundingBox = new THREE.BoxHelper( new THREE.Mesh( object.mergedGeometry, null ) );
+
+        object.boundingBox = boundingBox;
+
+        object.add( boundingBox );
+
+    }
+
+
     static create_bounding_boxes_for_meshes( object ) {
 
-        let self = this;
+        // Only consider multi-mesh objects because if the object consists of one mesh,
+        // then the object's bBox will be the same as the lone mesh's bBox.
+        if ( object.meshCount == "EE" ) {
 
-        object.children.forEach( function( child ) {
+            // return;
 
-            if ( child instanceof THREE.Mesh ) {
+        }
+        else {
 
-                child.boundingBox = new THREE.BoxHelper( child );
+            let self = this;
 
-                child.add( child.boundingBox );
+            object.children.forEach( function( child ) {
 
-                child.boundingBox.geometry.center();
+                if ( child instanceof THREE.Mesh ) {
 
-                self.boundingBoxes.push( child.boundingBox );
+                    child.boundingBox = new THREE.BoxHelper( child );
 
-            }
+                    child.boundingBox.visible = false;
 
-        });
+                    child.add( child.boundingBox );
+
+                    child.boundingBox.geometry.center();
+
+                    // self.boundingBoxes.push( child.boundingBox );
+
+                }
+
+            });
+
+        }
 
     }
 
