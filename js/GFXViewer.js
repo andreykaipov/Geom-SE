@@ -152,11 +152,20 @@ class GFXViewer {
 
             }
 
+            
         }
 
         function onKeyUp( event ) {
 
             console.log(event.keyCode);
+
+            // If the G key is coming back up, lift the shift key back up immediately.
+            // This leaves the meshes glued back together at the object's center.
+            if ( event.keyCode == 71 ) {
+
+                shiftKeyUp = true;
+
+            }
 
             // Fires only when the shift key is down, and is just being let go.
             if ( ! shiftKeyUp && event.keyCode == 16 ) {
