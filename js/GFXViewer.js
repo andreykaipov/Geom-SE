@@ -11,7 +11,7 @@ class GFXViewer {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.near = 0.1;
         this.camera.far = 8000;
-        this.camera.position.set( 0, 0, 2 );
+        this.camera.position.set( 0, 0.1, 2 );
         this.camera.updateProjectionMatrix();
 
         this.renderer = new THREE.WebGLRenderer( { alpha: true } );
@@ -31,7 +31,7 @@ class GFXViewer {
         this.loadedMeshes = [];
         this.selectedMeshes = new THREE.Group();
 
-        this.scene.add( buildAxes( 100 ) );
+        this.scene.add( this.__makeAxes( 5 ) );
         // this.scene.add( this.selectedBoundingBox );
 
         this.transformControls = new THREE.TransformControls( this.camera, this.renderer.domElement );
@@ -152,7 +152,7 @@ class GFXViewer {
 
             }
 
-            
+
         }
 
         function onKeyUp( event ) {
@@ -290,19 +290,36 @@ class GFXViewer {
     }
 
 
-    merge_meshes( meshes ) {
+    __makeAxes( length ) {
 
-        let mergedGeometry = new THREE.Geometry();
-        meshes.forEach( mesh => {
-            let geometry = new THREE.Geometry().fromBufferGeometry( mesh.geometry );
-            geometry.center();
-            mergedGeometry.merge( geometry );
-        });
-        let representativeMergedMesh = new THREE.Mesh( mergedGeometry, null );
+    	var vertices = new Float32Array( [
+    		0, 0, 0,  length, 0, 0,  // +x
+    		0, 0, 0,  0, length, 0,  // +y
+    		0, 0, 0,  0, 0, length,  // +z
+            0, 0, 0,  -length, 0, 0, // -x
+    		0, 0, 0,  0, -length, 0, // -y
+    		0, 0, 0,  0, 0, -length  // -z
+    	] );
 
-        return representativeMergedMesh;
+    	var vertexColors = new Float32Array( [
+            1, 0, 0,  1, 0.6, 0, // +x is red to kinda red.
+    		0, 1, 0,  0.6, 1, 0, // +y is green to kinda green.
+    		0, 0, 1,  0, 0.6, 1, // +z is blue to kinda blue.
+            0, 1, 1,  0, 0.4, 1, // -x is cyan to kinda cyan.
+    		1, 0, 1,  0.4, 0, 1, // -y is magenta to kinda magenta.
+    		1, 1, 0,  1, 0.4, 0  // -z is yellow to kinda yellow.
+    	] );
+
+    	var geometry = new THREE.BufferGeometry();
+    	geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
+    	geometry.addAttribute( 'color', new THREE.BufferAttribute( vertexColors, 3 ) );
+
+    	var material = new THREE.LineBasicMaterial( { vertexColors: THREE.VertexColors } );
+
+    	return new THREE.LineSegments( geometry, material );
 
     }
+
 }
 
 console.log("hello");
