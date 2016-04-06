@@ -34,3 +34,15 @@ canvas {
 .sidebar input {
     /*display: none;*/
 }
+
+/*The following css makes the gui text larger*/
+.dg {
+    color: #fff;
+    font-size: 14px;
+    text-shadow: none !important;
+}
+
+.dg li:not(.folder) {
+    /*background: rgba(0, 0, 0, 1); !! transparency of gui makes the folders buggy when closed. */
+    border-bottom: 1px solid #ddd;
+}

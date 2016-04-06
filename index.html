@@ -4,25 +4,18 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="An OBJ 3D Model Viewer">
     <meta name="author" content="Andrey Kaipov">
 
     <title>OBJ Viewer</title>
-
-    <!-- jQuery UI CSS. -->
-    <!-- <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.4/themes/pepper-grinder/jquery-ui.css"> -->
-
-    <!-- <link rel="stylesheet" href="https://rawgit.com/codemirror/CodeMirror/master/lib/codemirror.css"> -->
-
-    <!-- Custom styles for this page. -->
-    <link rel="stylesheet" type="text/css" href="css/style.css">
-    <!-- <link rel="stylesheet" type="text/css" href="css/codemirror.css"> -->
 </head>
 
 <body>
+
     <div class="sidebar">
+
         <input type="file" id="i_file">
+
         <ul>
             <a download="" id="download_link">Download triangulated .obj file</a>
             <hr id="download_hreaker">
@@ -38,26 +31,29 @@
             <li id="characteristic"></li>
             <li id="genus"></li>
         </ul>
+
     </div>
 
-    <div id="gfxContainer" tabindex="1"></div>
+    <!-- Three.js Renderer goes in here. -->
+    <div id="gfxContainer" tabindex="0"></div>
 
-    <!-- jQuery. It's used a couple times... -->
+
+    <!-- SCRIPTS AND CSS -->
+
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.js"></script>
 
     <!-- Core Three.js library plus extras. -->
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r75/three.js"></script>
-    <script type="text/javascript" src="http://users.cis.fiu.edu/~akaip002/js-libraries/OBJLoader.js"></script>     <!-- For actually loading .obj files -->
-    <script type="text/javascript" src="http://users.cis.fiu.edu/~akaip002/js-libraries/TransformControls.js"></script> <!-- For mouse object controls. -->
-    <script type="text/javascript" src="http://users.cis.fiu.edu/~akaip002/js-libraries/OrbitControls.js"></script> <!-- For mouse camera controls. -->
-    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.js"></script>   <!-- For fancy GUI sliders. -->
-    <script type="text/javascript" src="http://ocelot.aul.fiu.edu/~akaip002/js-libraries/Projector.js"></script>  <!-- For raycaster to select objects. -->
+    <script type="text/javascript" src="js/libs/OBJLoader.js"></script>         <!-- For loading .obj files -->
+    <script type="text/javascript" src="js/libs/OBJExporter.js"></script>       <!-- For expoting them... -->
+    <script type="text/javascript" src="js/libs/Projector.js"></script>         <!-- For raycasting to select objects. -->
+    <script type="text/javascript" src="js/libs/TransformControls.js"></script> <!-- For object mouse controls. -->
+    <script type="text/javascript" src="js/libs/OrbitControls.js"></script>     <!-- For camera mouse controls. -->
 
-    <!-- CodeMirror -->
-    <!-- <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/codemirror/5.12.0/codemirror.js"></script>
-    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/codemirror/5.12.0/mode/javascript/javascript.js"></script> -->
-
-    <!-- Half-edges -->
+    <!-- Half-edge mesh for calculations of meshes. -->
     <script type="text/javascript" src="js/halfedge/HalfEdge.js"></script>
     <script type="text/javascript" src="js/halfedge/HalfEdgeHash.js"></script>
     <script type="text/javascript" src="js/halfedge/HalfEdgeVertex.js"></script>
@@ -65,41 +61,29 @@
     <script type="text/javascript" src="js/halfedge/HalfEdgeMesh.js"></script>
 
     <script type="text/javascript" src="js/OBJParser.js"></script>
-
-    <script type="text/javascript" src="js/xyzAxes.js"></script>       <!-- Displays debug axes -->
     <script type="text/javascript" src="js/OBJHandler.js"></script>
     <script type="text/javascript" src="js/GFXViewer.js"></script>
+
     <script>
-    var gfxViewer = new GFXViewer();
-    gfxViewer.initLights();
-    gfxViewer.animate();
-    gfxViewer.initEventListeners();
-    // document.getElementById("i_file").addEventListener( 'change', this.add3DObject );
+
+        let gfxViewer = new GFXViewer();
+        gfxViewer.initLights();
+        gfxViewer.animate();
+        gfxViewer.initEventListeners();
+
     </script>
-
-    <!-- The following css makes the gui text larger. Has to be after the dat.gui js file. -->
-    <style type="text/css">
-        .dg {
-            color: #fff;
-            font-size: 14px;
-            text-shadow: none !important;
-        }
-
-        .dg li:not(.folder) {
-            /*background: rgba(0, 0, 0, 1); !! transparency of gui makes the folders buggy when closed. */
-            border-bottom: 1px solid #ddd;
-        }
-    </style>
 
     <!-- Google analytics. -->
     <script type="text/javascript">
-    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-    ga('create', 'UA-70865218-2', 'auto');
-    ga('send', 'pageview');
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-70865218-2', 'auto');
+        ga('send', 'pageview');
+
     </script>
 
 </body>
