@@ -53,7 +53,8 @@ class GFXViewer {
 
     }
 
-    add3DObject( file ) {
+
+    __handleAdd3DObject( file ) {
 
         let self = this;
 
@@ -72,26 +73,15 @@ class GFXViewer {
 
                 OBJHandler.find_mesh_counts( object );
                 OBJHandler.apply_default_materials( object );
-                OBJHandler.normalize_and_center_geometries( object );
+                OBJHandler.find_normalize_and_center_object_geometry( object );
+                OBJHandler.normalize_and_center_mesh_geometries( object );
                 OBJHandler.compute_face_and_vertex_normals( object );
-                OBJHandler.create_bounding_box_for_object( object )
-                OBJHandler.create_bounding_boxes_for_meshes( object );
+                OBJHandler.compute_bounding_box_for_object( object )
+                OBJHandler.compute_bounding_boxes_for_meshes( object );
                 OBJHandler.recognize_meshes_for_raycaster( object, self.loadedMeshes );
 
                 self.transformControls.attach( object );
-
                 self.selectedObject = object;
-
-                // if ( object.meshCount > 1 ) {
-                    // var boundaryBox = new THREE.BoxHelper( new THREE.Mesh(object.mergedGeometry, null) );
-                    // object.boundaryBox = boundaryBox;
-                    // object.add(boundaryBox);
-                // }
-                // else {
-                //     selectedMesh = object.children[ 0 ];
-                // }
-
-                // showSelectionTextForObject( object );
 
                 self.scene.add( object );
 
@@ -117,13 +107,12 @@ class GFXViewer {
 
         });
 
-        $('#i_file').change( event => {
+        $('#i_file').change( function( event ) {
 
-            var file = event.target.files[0];
-            self.add3DObject( file );
+            let file = event.target.files[0];
+            self.__handleAdd3DObject( file );
 
         });
-
         $('body').click( onMouseDown ).dblclick( onMouseDown );
         $('body').keydown( onKeyDown ).keyup( onKeyUp );
 
@@ -151,7 +140,6 @@ class GFXViewer {
                 });
 
             }
-
 
         }
 
@@ -229,9 +217,9 @@ class GFXViewer {
                 if ( event.ctrlKey ) {
 
                     self.selectedMesh.material.color.setHex( 0x999900 );
-                    self.selectedMeshes.add( self.selectedMesh );
-                    self.transformControls.attach( self.selectedMeshes );
-                    self.transformControls.update();
+                    // self.selectedMeshes.add( self.selectedMesh );
+                    // self.transformControls.attach( self.selectedMeshes );
+                    // self.transformControls.update();
 
                 }
                 if ( event.type === "dblclick" ) {
@@ -247,6 +235,15 @@ class GFXViewer {
 
     }
 
+    animate() {
+
+        requestAnimationFrame( this.animate.bind(this) );
+
+        this.__render();
+        this.__update();
+
+    }
+
     __render() {
 
         this.renderer.render( this.scene, this.camera );
@@ -258,37 +255,8 @@ class GFXViewer {
         this.transformControls.update();
 
         // this.camera.orbitControls.update();
-        // if ( this.selectedMesh ) {
-        //
-        //     if ( ! this.selectedMesh.name ) this.selectedMesh.name = "NO GROUP NAME FOUND";
-        //
-        //     $('#selected_obj').text( "Currently selected object: " + this.selectedObject.name );
-        //     $('#obj_mesh_count').text( "Number of mesh groups in object: " + this.selectedObject.meshCount );
-        //     $('#selected_mesh').text( "Currently selected object: " + this.selectedMesh.name );
-        //
-        // }
-        // else {
-        //
-        //     $('#selected_obj').text( "Currently selected object: " + this.selectedObject.name );
-        //     $('#obj_mesh_count').text( "Number of mesh groups in object: " + this.selectedObject.meshCount );
-        //     $('#selected_mesh').text( "No mesh group currently selected." );
-        //
-        // }
-
-        // let mergedMesh = this.merge_meshes( this.selectedMeshes );
-        // this.selectedBoundingBox.update( mergedMesh );
 
     }
-
-    animate() {
-
-        requestAnimationFrame( this.animate.bind(this) );
-
-        this.__render();
-        this.__update();
-
-    }
-
 
     __makeAxes( length ) {
 
