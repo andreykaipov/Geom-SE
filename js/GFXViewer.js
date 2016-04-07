@@ -237,7 +237,7 @@ class GFXViewer {
 
     animate() {
 
-        requestAnimationFrame( this.animate.bind(this) );
+        requestAnimationFrame( this.animate.bind( this ) );
 
         this.__render();
         this.__update();
@@ -271,11 +271,11 @@ class GFXViewer {
 
     	var vertexColors = new Float32Array( [
             1, 0, 0,  1, 0.6, 0, // +x is red to kinda red.
-    		0, 1, 0,  0.6, 1, 0, // +y is green to kinda green.
-    		0, 0, 1,  0, 0.6, 1, // +z is blue to kinda blue.
+    		0, 1, 0,  0, 1, 0.6, // +y is green to kinda green.
+    		0, 0, 1,  0.6, 0, 1, // +z is blue to kinda blue.
             0, 1, 1,  0, 0.4, 1, // -x is cyan to kinda cyan.
-    		1, 0, 1,  0.4, 0, 1, // -y is magenta to kinda magenta.
-    		1, 1, 0,  1, 0.4, 0  // -z is yellow to kinda yellow.
+    		1, 0, 1,  1, 0, 0.4, // -y is magenta to kinda magenta.
+    		1, 1, 0,  0.4, 1, 0  // -z is yellow to kinda yellow.
     	] );
 
     	var geometry = new THREE.BufferGeometry();
