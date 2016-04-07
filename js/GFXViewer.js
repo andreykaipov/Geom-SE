@@ -155,6 +155,13 @@ class GFXViewer {
 
             }
 
+            if ( event.keyCode == 66 ) {
+
+                OBJHandler.recompute_bounding_box_for_object( self.selectedObject );
+                shiftKeyUp = true;
+
+            }
+
             // Fires only when the shift key is down, and is just being let go.
             if ( ! shiftKeyUp && event.keyCode == 16 ) {
 
