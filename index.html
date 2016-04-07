@@ -63,6 +63,7 @@
     <script type="text/javascript" src="js/OBJParser.js"></script>
     <script type="text/javascript" src="js/OBJHandler.js"></script>
     <script type="text/javascript" src="js/GFXViewer.js"></script>
+    <script type="text/javascript" src="js/GFXGUI.js"></script>
 
     <script>
 
@@ -70,6 +71,9 @@
         gfxViewer.initLights();
         gfxViewer.animate();
         gfxViewer.initEventListeners();
+
+        let gfxGui = new GFXGUI( gfxViewer );
+        gfxGui.createGUI();
 
     </script>
 

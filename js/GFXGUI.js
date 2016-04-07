@@ -5,10 +5,74 @@
 // See the source for this. It's really innovative and helped a lot.
 // http://threejs.org/docs/scenes/material-browser.html#MeshPhongMaterial
 
-createGUI();
+"use strict";
 
+class GFXGUI {
 
+    constructor( gfxViewer ) {
 
+        this.gui = new dat.GUI();
+
+        this.gfxViewer = gfxViewer;
+        this.selectedMesh = gfxViewer.selectedMesh;
+        this.selectedObject = gfxViewer.selectedObject;
+
+    }
+
+    createGUI() {
+
+        this.__createGUIScale( this.gui );
+
+    }
+
+    __createGUIScale( gui ) {
+
+        var parameters = {
+            scaleX : 1,
+            scaleY : 1,
+            scaleZ : 1
+        };
+
+        var scaleFolder = gui.addFolder( "Scale" );
+
+        scaleFolder.add( parameters, 'scaleX', 1, 100 ).step(1).name( "scale x" ).onChange(
+            function( value ) { gfxViewer.selectedMesh.scale.setX( value ); }
+        );
+        scaleFolder.add( parameters, 'scaleY', 1, 100 ).step(1).name( "scale y" ).onChange(
+            function( value ) { gfxViewer.selectedMesh.scale.setY( value ); }
+        );
+        scaleFolder.add( parameters, 'scaleZ', 1, 100 ).step(1).name( "scale z" ).onChange(
+            function( value ) { gfxViewer.selectedMesh.scale.setZ( value ); }
+        );
+
+        scaleFolder.add( {
+            // Reset object scale and reset gui sliders.
+            // Without the .listen() method above, the gui sliders will not visually reset !
+            resetScale: function() {
+                parameters.scaleX = parameters.scaleY = parameters.scaleZ = 1;
+                gfxViewer.selectedMesh.scale.set( 1, 1, 1 );
+            }
+        }, 'resetScale' ).name( "reset scale" );
+
+        // When an object is moved with the TransformControls (see obj_viewer.js),
+        // the GUI sliders need to be visually updated, so we do that here.
+        document.addEventListener( 'mousedown', updateScaleGui );
+
+        function updateScaleGui() {
+            requestAnimationFrame( updateScaleGui );
+            if ( gfxViewer.selectedMesh != null ) {
+                parameters.scaleX = gfxViewer.selectedMesh.scale.x;
+                parameters.scaleY = gfxViewer.selectedMesh.scale.y;
+                parameters.scaleZ = gfxViewer.selectedMesh.scale.z;
+            }
+            for ( var i in scaleFolder.__controllers )
+                scaleFolder.__controllers[i].updateDisplay();
+        }
+
+    }
+
+}
+/*
 function createGUI() {
 
     var gui = new dat.GUI();
@@ -265,4 +329,4 @@ function createUploadObjFile( gui ) {
     }, 'uploadObj').name( "upload an obj file" );
 
 }
-
+*/
