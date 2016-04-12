@@ -31,8 +31,8 @@ canvas {
 }
 
 /* Hide the button upload display. This is used from within the gui. */
-.sidebar input {
-    /*display: none;*/
+.hide {
+    display: none;
 }
 
 /*The following css makes the gui text larger*/
