@@ -68,9 +68,11 @@
     <script>
 
         let gfxViewer = new GFXViewer();
-        gfxViewer.initLights();
+        gfxViewer.init_lights();
         gfxViewer.animate();
-        gfxViewer.initEventListeners();
+        gfxViewer.listen_handle_object_uploads();
+        gfxViewer.listen_raycaster_for_selection();
+        gfxViewer.listen_bounding_box_controls();
 
         let gfxGui = new GFXGUI( gfxViewer );
         gfxGui.createGUI();
