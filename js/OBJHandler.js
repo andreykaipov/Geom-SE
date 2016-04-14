@@ -101,6 +101,8 @@ class OBJHandler {
 
         object.boundingBox = boundingBox;
 
+        object.mergedGeometry.dispose(); // Clean up..?
+
         object.add( boundingBox );
 
     }
@@ -116,16 +118,22 @@ class OBJHandler {
 
             if ( child instanceof THREE.Mesh ) {
 
-
                 var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
 
                 geometry.scale( child.scale.x, child.scale.y, child.scale.z );
-                geometry.rotateX( child.rotation.x );
-                geometry.rotateY( child.rotation.y );
+
+                // A mesh's rotation gets its local rotation, and has an Euler order of XYZ.
+                // Since geometry rotation is extrinsic, we have to rotate in an order of ZYX.
+                // See https://en.wikipedia.org/wiki/Euler_angles#Conversion_between_intrinsic_and_extrinsic_rotations
                 geometry.rotateZ( child.rotation.z );
+                geometry.rotateY( child.rotation.y );
+                geometry.rotateX( child.rotation.x );
+
                 geometry.translate( child.position.x, child.position.y, child.position.z );
 
                 mergedGeometry.merge( geometry );
+
+                geometry.dispose(); // Clean up..? Not sure if necessary.
 
             }
 
@@ -136,35 +144,21 @@ class OBJHandler {
         object.mergedGeometry = new THREE.BufferGeometry().fromGeometry( mergedGeometry );
 
         object.mergedCentroid = mergedCentroid.add( object.position );
-        // object.mergedCentroid = mergedGeometry.boundingBox.center().add( object.position );
-        // object.translateX( object.position.x - object.mergedCentroid.x );
-        // object.translateY( object.position.y - object.mergedCentroid.y );
-        // object.translateZ( object.position.z - object.mergedCentroid.z );
         object.__oldPosition = object.position.clone();
         object.position.copy( object.mergedCentroid );
 
+        let offset = object.__oldPosition.sub( object.mergedCentroid );
+
         object.children.forEach( function( child ) {
             if ( child instanceof THREE.Mesh ) {
-                child.translateX( object.__oldPosition.x - object.mergedCentroid.x );
-                child.translateY( object.__oldPosition.y - object.mergedCentroid.y );
-                child.translateZ( object.__oldPosition.z - object.mergedCentroid.z );
-
-                child.centroid.set( child.position.x,
-                                    child.position.y,
-                                    child.position.z );
-
+                child.position.add( offset );
+                child.centroid.copy( child.position );
             }
         });
 
-        object.mergedGeometry.translate( object.__oldPosition.x - object.mergedCentroid.x,
-                                         object.__oldPosition.y - object.mergedCentroid.y,
-                                         object.__oldPosition.z - object.mergedCentroid.z )
-        // object.matrixWorld.elements[ 12 ] = object.mergedCentroid.x;
-        // object.matrixWorld.elements[ 13 ] = object.mergedCentroid.y;
-        // object.matrixWorld.elements[ 14 ] = object.mergedCentroid.z;
-        // console.log( object.matrixWorld.elements[ 13 ] );
-        // object.matrixWorldNeedsUpdate = true;
-        // console.log( object.matrixWorld.elements[ 13 ] );
+        object.mergedGeometry.translate( offset.x, offset.y, offset.z );
+
+        object.remove( object.boundingBox );
         this.compute_bounding_box_for_object( object );
 
     }
