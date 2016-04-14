@@ -187,8 +187,8 @@ class GFXGUI {
             // Reset object translation and reset gui sliders.
             resetTranslation: function() {
                 parameters.translationX = parameters.translationY = parameters.translationZ = 0;
-                gfxViewer.selectedMesh.position.copy( gfxViewer.selectedMesh.centroid );
-                gfxViewer.selectedMesh.position.sub( gfxViewer.selectedMesh.parent.mergedCentroid );
+                gfxViewer.selectedMesh.position.copy( gfxViewer.selectedMesh.userData.geomCenter );
+                // gfxViewer.selectedMesh.position.sub( gfxViewer.selectedMesh.parent.mergedCentroid );
             }
         }, 'resetTranslation' ).name( "reset translation" );
 

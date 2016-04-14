@@ -1,9 +1,35 @@
+/**
+  * @author Andrey Kaipov (https://github.com/andreykaipov)
+  *
+  * This class is a static class and meant for handling and manipulating
+  * ThreeJS objects and their constituent meshes.
+  *
+  * This class is primarily used when loading an object from an .obj file.
+  * Specifically, take a look at GFXViewer#listen_handle_object_uploads().
+  *
+  */
+
 class OBJHandler {
 
-    constructor() {
-        this.boundingBoxes = [];
+    /* Counts the number of meshes in an object.
+     * Be careful - it's not always going to be the length of the children array! */
+    static find_mesh_counts( object ) {
+
+        object.userData.meshCount = 0;
+
+        object.children.forEach( function( child ) {
+
+            if ( child instanceof THREE.Mesh ) {
+
+                object.userData.meshCount += 1;
+
+            }
+
+        });
+
     }
 
+    /* Assigns a random color to each mesh of an object, and use double sided faces. */
     static apply_default_materials( object ) {
 
         object.children.forEach( function( child ) {
@@ -21,96 +47,9 @@ class OBJHandler {
 
     }
 
-    // As of r74 OBJLoader, o and g tags are processed as their own separate meshes (and hence their own geometries).
-    // Because of this, we have to jump through a couple of hoops to properly normalize and center the entire object.
-    //   1. Merge each inidividual geometry, and then normalize and center the merged geometry.
-    //   2. Scale each geometry down by the merged geometry's bounding sphere's radius.
-    //   3. "Centralize" each geometry towards the origin with respect to the merged geometry's bounding box.
-    //   4. Now center each geometry at the origin with respect to its own (!) bounding box.
-    //   5. Now, move the mesh corresponding to each geometry back to where it just was in step 4.!
-    //
-    // This function actually only does step 1 of the above strategy!
-    static find_normalize_and_center_object_geometry( object ) {
-
-        // Merging BufferGeometries don't work for some reason, so convert them into a regular geometry.
-        var mergedGeometry = new THREE.Geometry();
-
-        object.children.forEach( function( child ) {
-            if ( child instanceof THREE.Mesh ) {
-
-                var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
-                mergedGeometry.merge( geometry );
-
-            }
-        });
-
-        mergedGeometry = new THREE.BufferGeometry().fromGeometry( mergedGeometry );
-
-        // Scale down the merged geometry.
-        // Keep the r to scale down the individual mesh geometries respectively in the below function.
-        mergedGeometry.computeBoundingSphere();
-        var r = mergedGeometry.boundingSphere.radius;
-        mergedGeometry.scale( 1/r, 1/r, 1/r );
-        mergedGeometry.__originalRadius = r;
-
-        // Center it. Keep the offset to center the composing geometries with respect to the merged geometry.
-        mergedGeometry.computeBoundingBox();
-        var mergedCentroid = mergedGeometry.boundingBox.center();
-        var mergedOffset = mergedCentroid.clone().multiplyScalar( -1 );
-        mergedGeometry.translate( mergedOffset.x, mergedOffset.y, mergedOffset.z );
-
-        object.mergedGeometry = mergedGeometry;
-        object.mergedCentroid = mergedCentroid;
-
-    }
-
-    static normalize_and_center_mesh_geometries( object ) {
-
-        var r = object.mergedGeometry.__originalRadius;
-        var mergedOffset = object.mergedCentroid.clone().multiplyScalar( -1 );
-
-        // Traverse again, now to normalize each individual geometry.
-        object.children.forEach( function( child ) {
-
-            if ( child instanceof THREE.Mesh ) {
-
-                child.geometry.scale( 1/r, 1/r, 1/r );
-
-                child.geometry.translate( mergedOffset.x, mergedOffset.y, mergedOffset.z );
-
-                child.geometry.computeBoundingBox();
-                var centroid = child.geometry.boundingBox.center();
-                var offset = centroid.clone().negate();
-                //
-                child.geometry.translate( offset.x, offset.y, offset.z );
-                child.position.set( centroid.x, centroid.y, centroid.z );
-
-                child.geometry.computeBoundingBox();
-
-                child.centroid = centroid;
-
-            }
-
-        });
-
-    }
-
-    static compute_bounding_box_for_object( object ) {
-
-        var boundingBox = new THREE.BoxHelper( new THREE.Mesh( object.mergedGeometry, null ) );
-
-        object.boundingBox = boundingBox;
-
-        object.mergedGeometry.dispose(); // Clean up..?
-
-        object.add( boundingBox );
-
-    }
-
-    // This function is similar in spirit to `find_normalize_and_center_object_geometry`, except here
-    // we have to change each individual mesh's geometry so that it corresponds to the properties of its mesh.
-    // Take extra note of the order in which we change the geometry!
-    static recompute_bounding_box_for_object( object ) {
+    /* Merges the geometries of the constituent meshes of an object.
+     * Take note of the order in which we manipulate each constituent geometry! */
+    static compute_merged_geometry( object ) {
 
         var mergedGeometry = new THREE.Geometry();
 
@@ -120,7 +59,9 @@ class OBJHandler {
 
                 var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
 
-                geometry.scale( child.scale.x, child.scale.y, child.scale.z );
+                // The cool spread operator (...) helps us to save horizontal space. :-)
+                // We have to convert each ThreeJS vector to an array before we can spread though!
+                geometry.scale( ...child.scale.toArray() );
 
                 // A mesh's rotation gets its local rotation, and has an Euler order of XYZ.
                 // Since geometry rotation is extrinsic, we have to rotate in an order of ZYX.
@@ -129,86 +70,57 @@ class OBJHandler {
                 geometry.rotateY( child.rotation.y );
                 geometry.rotateX( child.rotation.x );
 
-                geometry.translate( child.position.x, child.position.y, child.position.z );
+                geometry.translate( ...child.position.toArray() );
 
                 mergedGeometry.merge( geometry );
 
-                geometry.dispose(); // Clean up..? Not sure if necessary.
-
             }
 
         });
 
-        mergedGeometry.computeBoundingBox();
-        var mergedCentroid = mergedGeometry.boundingBox.center();
-        object.mergedGeometry = new THREE.BufferGeometry().fromGeometry( mergedGeometry );
-
-        object.mergedCentroid = mergedCentroid.add( object.position );
-        object.__oldPosition = object.position.clone();
-        object.position.copy( object.mergedCentroid );
-
-        let offset = object.__oldPosition.sub( object.mergedCentroid );
-
-        object.children.forEach( function( child ) {
-            if ( child instanceof THREE.Mesh ) {
-                child.position.add( offset );
-                child.centroid.copy( child.position );
-            }
-        });
-
-        object.mergedGeometry.translate( offset.x, offset.y, offset.z );
-
-        object.remove( object.boundingBox );
-        this.compute_bounding_box_for_object( object );
+        // Convert back to a BufferGeometry for efficiency, and compute some useful things.
+        object.userData.mergedGeometry = new THREE.BufferGeometry().fromGeometry( mergedGeometry );
+        object.userData.mergedGeometry.computeBoundingSphere();
+        object.userData.mergedGeometry.computeBoundingBox();
 
     }
 
+    /* As of r74 OBJLoader, o and g tags are processed as their own separate meshes (and thus their own geometries).
+     * Because of this, we have to jump through a couple of hoops to properly normalize the entire object,
+     * including its constituent meshes.
+     *   1. Merge each inidividual geometry, and then normalize and center the merged geometry.
+     *   2. Scale each geometry down by the merged geometry's bounding sphere's radius.
+     *   3. "Centralize" each geometry towards the origin with respect to the merged geometry's center.
+     *   4. Now, center each geometry at the origin with respect to its own (!) bounding box.
+     *   5. Now, move the MESH corresponding to each geometry back to where it just was in step 4.! */
+    static normalize_object( object ) {
 
-    static compute_bounding_boxes_for_meshes( object ) {
+        this.compute_merged_geometry( object );
 
-        // Only consider multi-mesh objects because if the object consists of one mesh,
-        // then the object's bBox will be the same as the lone mesh's bBox.
-        if ( object.meshCount == "EE" ) {
+        // Scale down the merged geometry.
+        let radius = object.userData.mergedGeometry.boundingSphere.radius;
+        object.userData.mergedGeometry.scale( 1/radius, 1/radius, 1/radius );
 
-            // return;
+        // Once scaled, center it at the origin by using the negation of the geometry's center.
+        let mergedCenter = object.userData.mergedGeometry.boundingBox.center();
+        object.userData.mergedGeometry.translate( ...mergedCenter.clone().negate().toArray() );
 
-        }
-        else {
-
-            let self = this;
-
-            object.children.forEach( function( child ) {
-
-                if ( child instanceof THREE.Mesh ) {
-
-                    child.boundingBox = new THREE.BoxHelper( child );
-
-                    child.boundingBox.visible = false;
-
-                    child.add( child.boundingBox );
-
-                    child.boundingBox.geometry.center();
-
-                    // self.boundingBoxes.push( child.boundingBox );
-
-                }
-
-            });
-
-        }
-
-    }
-
-    // Counts the number of meshes in an object.
-    static find_mesh_counts( object ) {
-
-        object.meshCount = 0;
-
+        // Step 1 done. Now to normalize each constituent geometry.
         object.children.forEach( function( child ) {
 
             if ( child instanceof THREE.Mesh ) {
 
-                object.meshCount += 1;
+                // Step 2 and 3.
+                child.geometry.scale( 1/radius, 1/radius, 1/radius );
+                child.geometry.translate( ...mergedCenter.clone().negate().toArray() );
+
+                // Step 4.
+                child.geometry.computeBoundingBox();
+                child.userData.geomCenter = child.geometry.boundingBox.center();
+                child.geometry.translate( ...child.userData.geomCenter.clone().negate().toArray() );
+
+                // Step 5.
+                child.position.set( ...child.userData.geomCenter.toArray() );
 
             }
 
@@ -216,13 +128,14 @@ class OBJHandler {
 
     }
 
-    // Computes the face and vertex normals of each composing mesh of each object.
+    /* Computes the face and vertex normals of each constituent mesh of an object. */
     static compute_face_and_vertex_normals( object ) {
 
         object.children.forEach( function( child ) {
 
             if ( child instanceof THREE.Mesh ) {
 
+                // A BufferGeometry cannot compute face normals and merge vertices, so convert.
                 var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
 
                 geometry.computeFaceNormals();
@@ -237,6 +150,40 @@ class OBJHandler {
 
     }
 
+    /* Draws a bounding box for an object by using its merged geometry. */
+    static draw_object_bounding_box( object ) {
+
+        var boundingBox = new THREE.BoxHelper( new THREE.Mesh( object.userData.mergedGeometry, null ) );
+
+        object.userData.boundingBox = boundingBox;
+
+        object.add( boundingBox );
+
+    }
+
+    /* Draws a bounding box for each constituent mesh of an object. */
+    static draw_mesh_bounding_boxes( object ) {
+
+        object.children.forEach( function( child ) {
+
+            if ( child instanceof THREE.Mesh ) {
+
+                child.userData.boundingBox = new THREE.BoxHelper( child );
+
+                child.userData.boundingBox.visible = false;
+
+                child.add( child.userData.boundingBox );
+
+                child.userData.boundingBox.geometry.center();
+
+            }
+
+        });
+
+    }
+
+    /* Adds the constituent meshes of an object into an array.
+     * It's purpose is so our raycaster can select meshes from this array. */
     static recognize_meshes_for_raycaster( object, loadedMeshes ) {
 
         object.children.forEach( function( child ) {
@@ -250,4 +197,41 @@ class OBJHandler {
         });
 
     }
+
+    /* Recomputes an object's bounding box.
+     * The way this works is by re-merging the constituent geometries, finding its center,
+     * and using that as the new center for the object. However, this also moves the
+     * constituent meshes, so we need to move them back to where they just were. */
+    static recompute_object_bounding_box( object ) {
+
+        this.compute_merged_geometry( object );
+
+        // Find the center of the re-merged geometry.
+        object.userData.mergedGeometry.computeBoundingBox();
+        let mergedCenter = object.userData.mergedGeometry.boundingBox.center();
+
+        // Move the object to it's new center. Note its current position.
+        let newCenter = mergedCenter.add( object.position );
+        let oldPosition = object.position.clone();
+        object.position.copy( newCenter );
+
+        // Find out how much we need to move each mesh back.
+        let offset = oldPosition.clone().sub( mergedCenter );
+
+        object.children.forEach( function( child ) {
+            if ( child instanceof THREE.Mesh ) {
+
+                child.position.add( offset );
+                child.userData.geomCenter.copy( child.position );
+
+            }
+        });
+
+        object.userData.mergedGeometry.translate( ...offset.toArray() );
+
+        object.remove( object.userData.boundingBox );
+        this.draw_object_bounding_box( object );
+
+    }
+
 }
