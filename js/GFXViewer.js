@@ -45,6 +45,7 @@ class GFXViewer {
         // For control of selected mesh and object.
         this.transformControls = new THREE.TransformControls( this.camera, this.renderer.domElement );
         this.transformControls.addEventListener( 'change', this.__render.bind( this ) );
+        this.transformControls.setSize( 0.6 );
         this.transformControls.visible = false;
         this.scene.add( this.transformControls );
 
@@ -114,9 +115,7 @@ class GFXViewer {
 
         let self = this;
 
-        $('body').click( onMouseDown ).dblclick( onMouseDown );
-
-        function onMouseDown( event ) {
+        $('body').on( 'click dblclick' , function( event ) {
 
             self.mouse.x = ( event.clientX / self.renderer.domElement.clientWidth ) * 2 - 1;
             self.mouse.y = - ( event.clientY / self.renderer.domElement.clientHeight ) * 2 + 1;
@@ -169,20 +168,20 @@ class GFXViewer {
 
             }
 
-        }
+        });
 
     }
 
-    /* Performs manipulations on the constituent meshes of the object, or on the object itself. */
+    /* Pressing and holding the shift key temporarily reassembles the constituent meshes of an object
+     * back together at the object's center. Pressing G at this time will permanently glue it back together.
+     * Alternatively, one can press B */
     listen_bounding_box_controls() {
 
         let self = this;
         let shiftKeyUp = true; // jQuery doesn't support shift as a "keypress" event,
                                // so we make our shift keydown event behave like a keypress with this flag.
 
-        $('body').keydown( onKeyDown ).keyup( onKeyUp );
-
-        function onKeyDown( event ) {
+        $('body').keydown( function( event ) {
 
             // Fire only when the shift key is up and the shift key is being pressed.
             // Additionally, gluing back only makes sense if the object has several meshes. <--- Look into this.
@@ -207,9 +206,7 @@ class GFXViewer {
 
             }
 
-        }
-
-        function onKeyUp( event ) {
+        }).keyup( function( event ) {
 
             // If the G key is coming back up, lift the shift key back up immediately.
             // This leaves the meshes glued back together at the object's center.
@@ -247,9 +244,61 @@ class GFXViewer {
 
             }
 
-        }
+        });
 
     }
+
+    listen_transform_controls() {
+
+        let self = this;
+
+        $('body').keydown( function( event ) {
+
+            switch ( event.keyCode ) {
+                case 48: // 0
+                    // What's the difference between local and world space?
+                    self.transformControls.setSpace( self.transformControls.space === "local" ? "world" : "local" );
+                    break;
+                case 49: // 1
+                    self.transformControls.setMode( "translate" );
+                    break;
+                case 50: // 2
+                    self.transformControls.setMode( "rotate" );
+                    break;
+                case 51: // 3
+                    self.transformControls.setMode( "scale" );
+                    break;
+
+                case 187: // =/+ key
+                case 107: // numpad +
+                    self.transformControls.setSize( self.transformControls.size + 0.1 );
+                    break;
+                case 189: // -/_ key
+                case 109: // numpad -
+                    self.transformControls.setSize( Math.max( self.transformControls.size - 0.1, 0.1 ) );
+                    break;
+
+                case 17: // CTRL key
+                    // Toggle snap-to-grid for the selectedObject.
+                    if ( self.transformControls.translationSnap == null && self.transformControls.rotationSnap == null) {
+                        self.transformControls.setTranslationSnap( 1 );
+                        self.transformControls.setRotationSnap( THREE.Math.degToRad(15) );
+                    }
+                    else {
+                        self.transformControls.setTranslationSnap( null );
+                        self.transformControls.setRotationSnap( null );
+                    }
+
+                case 72: // H
+                    // Toggle visibility of selected object controls
+                    self.transformControls.visible = (self.transformControls.visible ? false : true);
+            }
+
+        });
+
+
+    }
+
 
     animate() {
 
