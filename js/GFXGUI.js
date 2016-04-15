@@ -19,19 +19,261 @@ class GFXGUI {
 
     }
 
-    createGUI() {
+    create() {
 
-        this.__create_GUI_scale( this.gui );
-        this.__create_GUI_rotation( this.gui );
-        this.__create_GUI_translation( this.gui );
-        this.__create_upload_obj_file( this.gui );
-        this.__create_export_obj_file( this.gui );
+        this.create_controls_gui();
+        // this.create_controls_mesh_material();
+
+        this.create_upload_obj_file();
+
+        // this.__create_GUI_scale( this.gui );
+        // this.__create_GUI_rotation( this.gui );
+        // this.__create_GUI_translation( this.gui );
+        // this.__create_export_obj_file( this.gui );
 
     }
 
-    __create_upload_obj_file( gui ) {
+    create_controls_gui() {
 
-        gui.add({
+        let controlFolder = this.gui.addFolder( "Transform Controls" );
+
+        let objectFolder = controlFolder.addFolder( "object controls (world)" );
+        this.create_gui_scale( "selectedObject", objectFolder );
+        this.create_gui_rotation( "selectedObject", objectFolder );
+        this.create_gui_translation( "selectedObject", objectFolder );
+
+        let meshFolder = controlFolder.addFolder( "mesh controls (relative)" );
+        this.create_gui_scale( "selectedMesh", meshFolder );
+        this.create_gui_rotation( "selectedMesh", meshFolder );
+        this.create_gui_translation( "selectedMesh", meshFolder );
+
+    }
+
+    create_controls_mesh_material() {
+
+        let controlFolder = this.gui.addFolder( "Material Controls" );
+
+        this.create_gui_mesh_material( controlFolder );
+
+    }
+
+    /* Creates a GUI for the scale for the selectedThing under a designated folder.
+     * We pass the selectedThing as a string so we can access the updated property from the gfxViewer.
+     * The following methods for the rotation and translation are similar except where noted. */
+    create_gui_scale( selectedThing, parentFolder ) {
+
+        let folder = parentFolder.addFolder( "scale" );
+
+        let parameters = { scaleX: 1, scaleY: 1, scaleZ: 1 };
+        let keys = Object.keys( parameters );
+
+        folder.add( parameters, 'scaleX', 0.1, 25 ).name( "x" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].scale.setX( value ); }
+        );
+        folder.add( parameters, 'scaleY', 0.1, 25 ).name( "y" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].scale.setY( value ); }
+        );
+        folder.add( parameters, 'scaleZ', 0.1, 25 ).name( "z" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].scale.setZ( value ); }
+        );
+
+        // Reset object scale by setting the sliders to the defaults.
+        // The first three controllers are the XYZ scale sliders.
+        folder.add( {
+            resetScale: function() {
+                for ( let i = 0; i < 3; i++ ) {
+                    folder.__controllers[ i ].setValue( 1 );
+                }
+            }
+        }, 'resetScale' ).name( "reset scale" );
+
+        // When an object is changed with the TransformControls, the GUI sliders need to be visually updated.
+        gfxViewer.transformControls.addEventListener( 'objectChange', function() {
+            for ( let i = 0; i < 3; i++ ) {
+                parameters[ keys[ i ] ] = gfxViewer[ selectedThing ].scale.toArray()[ i ];
+                folder.__controllers[ i ].updateDisplay();
+            }
+        });
+
+    }
+
+    /* Creates a GUI for the scale for the selectedThing under a designated folder.
+     * We pass the selectedThing as a string so we can access the updated property from the gfxViewer. */
+    create_gui_rotation( selectedThing, parentFolder ) {
+
+        let folder = parentFolder.addFolder( "rotation (clockwise in radians)" );
+
+        // We need to start off with non-integer values because dat.gui is a little buggy.
+        // See https://github.com/dataarts/dat.gui/issues/48 for more info.
+        let parameters = { rotationX: 0.001, rotationY: 0.001, rotationZ: 0.001 };
+        let keys = Object.keys( parameters );
+
+        folder.add( parameters, 'rotationX', -Math.PI, Math.PI ).name( "x" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].rotation.x = value; }
+        );
+        folder.add( parameters, 'rotationY', -Math.PI, Math.PI ).name( "y" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].rotation.y = value; }
+        );
+        folder.add( parameters, 'rotationZ', -Math.PI, Math.PI ).name( "z" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].rotation.z = value; }
+        );
+
+        // Now set the sliders to start at 0. This is related to the above bug issue.
+        for ( let i = 0; i < 3; i++ ) { folder.__controllers[ i ].setValue( 0 ); }
+
+        folder.add( {
+            resetRotation: function() {
+                for ( let i = 0; i < 3; i++ ) {
+                    folder.__controllers[ i ].setValue( 0 );
+                }
+            }
+        }, 'resetRotation' ).name( "reset rotation" );
+
+        gfxViewer.transformControls.addEventListener( 'objectChange', function() {
+            for ( let i = 0; i < 3; i++ ) {
+                parameters[ keys[ i ] ] = gfxViewer[ selectedThing ].rotation.toArray()[ i ];
+                folder.__controllers[ i ].updateDisplay();
+            }
+        });
+
+    }
+
+    /* Creates a GUI for the scale for the selectedThing under a designated folder.
+     * We pass the selectedThing as a string so we can access the updated property from the gfxViewer. */
+    create_gui_translation( selectedThing, parentFolder ) {
+
+        let folder = parentFolder.addFolder( "translation" );
+
+        let parameters = { translationX: 0, translationY: 0, translationZ: 0 };
+        let keys = Object.keys( parameters );
+
+        folder.add( parameters, 'translationX', -25, 25 ).name( "x" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].position.setX( value ); }
+        );
+        folder.add( parameters, 'translationY', -25, 25 ).name( "y" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].position.setY( value ); }
+        );
+        folder.add( parameters, 'translationZ', -25, 25 ).name( "z" ).onChange(
+            function( value ) { gfxViewer[ selectedThing ].position.setZ( value ); }
+        );
+
+        folder.add( {
+            resetTranslation: function() {
+                for ( let i = 0; i < 3; i++ ) {
+                    folder.__controllers[ i ].setValue( 0 );
+                }
+            }
+        }, 'resetTranslation' ).name( "reset position" );
+
+        gfxViewer.transformControls.addEventListener( 'objectChange', function() {
+            for ( let i = 0; i < 3; i++ ) {
+                parameters[ keys[ i ] ] = gfxViewer[ selectedThing ].rotation.toArray()[ i ];
+                folder.__controllers[ i ].updateDisplay();
+            }
+        });
+
+    }
+
+    create_gui_material_color( parentFolder ) {
+
+        let colorFolder = parentFolder.addFolder( "Color" );
+
+        let parameters = {
+            diffuse : 0x000000,
+            emissive : 0x000000,
+            specular : 0x000000
+        }
+
+        colorFolder.addColor( parameters, 'diffuse' ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.color.setHex( value );
+        });
+        colorFolder.addColor( parameters, 'emissive' ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.emissive.setHex( value );
+        });
+        colorFolder.addColor( parameters, 'specular' ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.specular.setHex( value );
+        });
+
+        // When a new object is selected by our raycaster, update the parameters of the GUI.
+        $('body').click( function() {
+            let intersected = gfxViewer.raycaster.intersectObjects( gfxViewer.loadedMeshesInScene );
+            let material = gfxViewer.selectedMesh.material;
+            if ( intersected.length > 0 ) {
+                parameters.diffuse = material.color.getHex();
+                parameters.emissive = material.emissive.getHex();
+                parameters.specular = material.specular.getHex();
+                colorFolder.__controllers.forEach( controller => controller.updateDisplay() );
+            }
+        });
+
+    }
+
+    create_gui_mesh_material( parentFolder ) {
+
+        // let folder = parentFolder.addFolder( "Material" );
+
+        let parameters = {
+            diffuse : 0x000000,
+            emissive : 0x000000,
+            specular : 0x000000,
+            shading : THREE.FlatShading,
+            side : THREE.DoubleSide,
+            transparent: false,
+            opacity: 1
+        }
+
+        let constants = {
+            shadingOptions : {
+                "flat shading" : THREE.FlatShading,
+                "smooth shading" : THREE.SmoothShading
+            },
+            sideOptions : {
+                "front side" : THREE.FrontSide,
+                "back side" : THREE.BackSide,
+                "double side" : THREE.DoubleSide
+            }
+        };
+
+
+        parentFolder.add( parameters, 'shading', constants.shadingOptions ).onChange( function( value ) {
+            // 1/2 corresponds to Flat/Smooth shading respectively.
+            gfxViewer.selectedMesh.material.shading = parseInt( value );
+            gfxViewer.selectedMesh.material.needsUpdate = true;
+        });
+
+        parentFolder.add( parameters, 'side', constants.sideOptions ).onChange( function( value ) {
+            // 0/1/2 corresponds to Front/Back/Double side respectively.
+            gfxViewer.selectedMesh.material.side = parseInt( value );
+            gfxViewer.selectedMesh.material.needsUpdate = true;
+        });
+
+        parentFolder.add( parameters, 'transparent' ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.transparent = value;
+        });
+
+        parentFolder.add( parameters, 'opacity', 0, 1 ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.opacity = value;
+        });
+
+        // When a new object is selected by our raycaster, update the parameters of the GUI.
+        $('body').click( function() {
+            let intersected = gfxViewer.raycaster.intersectObjects( gfxViewer.loadedMeshesInScene );
+            let material = gfxViewer.selectedMesh.material;
+            if ( intersected.length > 0 ) {
+                parameters.diffuse = material.color.getHex();
+                parameters.emissive = material.emissive.getHex();
+                parameters.specular = material.specular.getHex();
+                parameters.shading = material.shading;
+                parameters.side = material.side;
+                colorFolder.__controllers.forEach( controller => controller.updateDisplay() );
+            }
+        });
+
+    }
+
+    create_upload_obj_file() {
+
+        this.gui.add({
             uploadObj: function() {
 
                 document.getElementById("i_file").click();
@@ -63,152 +305,10 @@ class GFXGUI {
         }, 'exportObj').name( "export as obj" );
 
     }
-
-    __create_GUI_scale( gui ) {
-
-        var parameters = {
-            scaleX : 1,
-            scaleY : 1,
-            scaleZ : 1
-        };
-
-        var scaleFolder = gui.addFolder( "Scale" );
-
-        scaleFolder.add( parameters, 'scaleX', 1, 100 ).step(1).name( "scale x" ).onChange(
-            function( value ) { gfxViewer.selectedMesh.scale.setX( value ); }
-        );
-        scaleFolder.add( parameters, 'scaleY', 1, 100 ).step(1).name( "scale y" ).onChange(
-            function( value ) { gfxViewer.selectedMesh.scale.setY( value ); }
-        );
-        scaleFolder.add( parameters, 'scaleZ', 1, 100 ).step(1).name( "scale z" ).onChange(
-            function( value ) { gfxViewer.selectedMesh.scale.setZ( value ); }
-        );
-
-        scaleFolder.add( {
-            // Reset object scale and reset gui sliders.
-            // Without the .listen() method above, the gui sliders will not visually reset !
-            resetScale: function() {
-                parameters.scaleX = parameters.scaleY = parameters.scaleZ = 1;
-                gfxViewer.selectedMesh.scale.set( 1, 1, 1 );
-            }
-        }, 'resetScale' ).name( "reset scale" );
-
-        // When an object is moved with the TransformControls (see obj_viewer.js),
-        // the GUI sliders need to be visually updated, so we do that here.
-        document.addEventListener( 'mousedown', updateScaleGui );
-
-        function updateScaleGui() {
-            requestAnimationFrame( updateScaleGui );
-            if ( gfxViewer.selectedMesh != null ) {
-                parameters.scaleX = gfxViewer.selectedMesh.scale.x;
-                parameters.scaleY = gfxViewer.selectedMesh.scale.y;
-                parameters.scaleZ = gfxViewer.selectedMesh.scale.z;
-            }
-            for ( var i in scaleFolder.__controllers )
-                scaleFolder.__controllers[i].updateDisplay();
-        }
-
-    }
-
-    __create_GUI_rotation( gui ) {
-        // We need to start off with non-integer values because dat.gui is a little buggy.
-        // See https://github.com/dataarts/dat.gui/issues/48 for more info.
-        var parameters = {
-            rotationX : 0.001,
-            rotationY : 0.001,
-            rotationZ : 0.001
-        };
-
-        var rotationFolder = gui.addFolder( "Rotation (clockwise in radians)" );
-
-        rotationFolder.add( parameters, 'rotationX', -Math.PI, Math.PI ).name( "rotate on x" ).onChange(
-            function ( value ) { gfxViewer.selectedMesh.rotation.x = value; }
-        );
-        rotationFolder.add( parameters, 'rotationY', -Math.PI, Math.PI ).name( "rotate on y" ).onChange(
-            function( value ) {
-                gfxViewer.selectedMesh.rotation.y = value;
-            }
-        );
-        rotationFolder.add( parameters, 'rotationZ', -Math.PI, Math.PI ).name( "rotate on z" ).onChange(
-            function( value ) { gfxViewer.selectedMesh.rotation.z = value; }
-        );
-
-        // Set the sliders to start at 0. This is related to the above bug issue.
-        parameters.rotationX = parameters.rotationY = parameters.rotationZ = 0;
-
-        rotationFolder.add( {
-            // Reset object rotation and reset gui sliders.
-            resetRotation: function() {
-                parameters.rotationX = parameters.rotationY = parameters.rotationZ = 0;
-                gfxViewer.selectedMesh.rotation.set( 0, 0, 0 );
-            }
-        }, 'resetRotation' ).name( "reset rotation" );
-
-        // When an object is moved with the TransformControls (see obj_viewer.js),
-        // the GUI sliders need to be visually updated, so we do that here.
-        document.addEventListener( 'mousedown', updateRotationGui );
-
-        function updateRotationGui() {
-            requestAnimationFrame( updateRotationGui );
-            if ( gfxViewer.selectedMesh != null ) {
-                parameters.rotationX = gfxViewer.selectedMesh.rotation.x;
-                parameters.rotationY = gfxViewer.selectedMesh.rotation.y;
-                parameters.rotationZ = gfxViewer.selectedMesh.rotation.z;
-            }
-            for ( var i in rotationFolder.__controllers )
-            rotationFolder.__controllers[i].updateDisplay();
-        }
-
-    }
-
-    __create_GUI_translation( gui ) {
-        var parameters = {
-            translationX : 0.01,
-            translationY : 0.01,
-            translationZ : 0.01
-        };
-
-        var translationFolder = gui.addFolder( "Translation" );
-
-        translationFolder.add( parameters, 'translationX', -20, 20 ).name( "translate x" ).onChange(
-            function ( value ) { gfxViewer.selectedMesh.position.setX( value ); }
-        );
-        translationFolder.add( parameters, 'translationY', -20, 20 ).name( "translate y" ).onChange(
-            function( value ) { gfxViewer.selectedMesh.position.setY( value ); }
-        );
-        translationFolder.add( parameters, 'translationZ', -20, 20 ).name( "translate z" ).onChange(
-            function( value ) { gfxViewer.selectedMesh.position.setZ( value ); }
-        );
-
-        // Set the sliders to start at 0.
-        parameters.translationX = parameters.translationY = parameters.translationZ = 0;
-
-        translationFolder.add( {
-            // Reset object translation and reset gui sliders.
-            resetTranslation: function() {
-                parameters.translationX = parameters.translationY = parameters.translationZ = 0;
-                gfxViewer.selectedMesh.position.copy( gfxViewer.selectedMesh.userData.geomCenter );
-                // gfxViewer.selectedMesh.position.sub( gfxViewer.selectedMesh.parent.mergedCentroid );
-            }
-        }, 'resetTranslation' ).name( "reset translation" );
-
-        // When an object is moved with the TransformControls (see obj_viewer.js),
-        // the GUI sliders need to be visually updated, so we do that here.
-        document.addEventListener( 'mousedown', updateTranslationGui );
-
-        function updateTranslationGui() {
-            requestAnimationFrame( updateTranslationGui );
-            if ( gfxViewer.selectedMesh != null ) {
-                parameters.translationX = gfxViewer.selectedMesh.position.x;
-                parameters.translationY = gfxViewer.selectedMesh.position.y;
-                parameters.translationZ = gfxViewer.selectedMesh.position.z;
-            }
-            for ( var i in translationFolder.__controllers )
-                translationFolder.__controllers[i].updateDisplay();
-        }
-    }
-
 }
+
+
+
 /*
 function createGUI() {
 
@@ -240,219 +340,6 @@ function createComputeInfo( gui ) {
 
 }
 
-function createGuiScale( gui ) {
-
-    var parameters = {
-        scaleX : 1,
-        scaleY : 1,
-        scaleZ : 1
-    };
-
-    var scaleFolder = gui.addFolder( "Scale" );
-
-    scaleFolder.add( parameters, 'scaleX', 1, 100 ).step(1).name( "scale x" ).onChange(
-        function( value ) { selectedMesh.scale.setX( value ); }
-    );
-    scaleFolder.add( parameters, 'scaleY', 1, 100 ).step(1).name( "scale y" ).onChange(
-        function( value ) { selectedMesh.scale.setY( value ); }
-    );
-    scaleFolder.add( parameters, 'scaleZ', 1, 100 ).step(1).name( "scale z" ).onChange(
-        function( value ) { selectedMesh.scale.setZ( value ); }
-    );
-
-    scaleFolder.add( {
-        // Reset object scale and reset gui sliders.
-        // Without the .listen() method above, the gui sliders will not visually reset !
-        resetScale: function() {
-            parameters.scaleX = parameters.scaleY = parameters.scaleZ = 1;
-            selectedMesh.scale.set( 1, 1, 1 );
-        }
-    }, 'resetScale' ).name( "reset scale" );
-
-    // When an object is moved with the TransformControls (see obj_viewer.js),
-    // the GUI sliders need to be visually updated, so we do that here.
-    document.addEventListener( 'mousedown', updateScaleGui );
-
-    function updateScaleGui() {
-        requestAnimationFrame( updateScaleGui );
-        if ( selectedMesh != null ) {
-            parameters.scaleX = selectedMesh.scale.x;
-            parameters.scaleY = selectedMesh.scale.y;
-            parameters.scaleZ = selectedMesh.scale.z;
-        }
-        for ( var i in scaleFolder.__controllers )
-            scaleFolder.__controllers[i].updateDisplay();
-    }
-}
-
-
-function createGuiRotation( gui ) {
-
-    // We need to start off with non-integer values because dat.gui is a little buggy.
-    // See https://github.com/dataarts/dat.gui/issues/48 for more info.
-    var parameters = {
-        rotationX : 0.001,
-        rotationY : 0.001,
-        rotationZ : 0.001
-    };
-
-    var rotationFolder = gui.addFolder( "Rotation (clockwise in radians)" );
-
-    rotationFolder.add( parameters, 'rotationX', -Math.PI, Math.PI ).name( "rotate on x" ).onChange(
-        function ( value ) { selectedMesh.rotation.x = value; }
-    );
-    rotationFolder.add( parameters, 'rotationY', -Math.PI, Math.PI ).name( "rotate on y" ).onChange(
-        function( value ) {
-            selectedMesh.rotation.y = value;
-        }
-    );
-    rotationFolder.add( parameters, 'rotationZ', -Math.PI, Math.PI ).name( "rotate on z" ).onChange(
-        function( value ) { selectedMesh.rotation.z = value; }
-    );
-
-    // Set the sliders to start at 0. This is related to the above bug issue.
-    parameters.rotationX = parameters.rotationY = parameters.rotationZ = 0;
-
-    rotationFolder.add( {
-        // Reset object rotation and reset gui sliders.
-        resetRotation: function() {
-            parameters.rotationX = parameters.rotationY = parameters.rotationZ = 0;
-            selectedMesh.rotation.set( 0, 0, 0 );
-        }
-    }, 'resetRotation' ).name( "reset rotation" );
-
-    // When an object is moved with the TransformControls (see obj_viewer.js),
-    // the GUI sliders need to be visually updated, so we do that here.
-    document.addEventListener( 'mousedown', updateRotationGui );
-
-    function updateRotationGui() {
-        requestAnimationFrame( updateRotationGui );
-        if ( selectedMesh != null ) {
-            parameters.rotationX = selectedMesh.rotation.x;
-            parameters.rotationY = selectedMesh.rotation.y;
-            parameters.rotationZ = selectedMesh.rotation.z;
-        }
-        for ( var i in rotationFolder.__controllers )
-            rotationFolder.__controllers[i].updateDisplay();
-    }
-}
-
-
-function createGuiTranslation( gui ) {
-
-    var parameters = {
-        translationX : 0.01,
-        translationY : 0.01,
-        translationZ : 0.01
-    };
-
-    var translationFolder = gui.addFolder( "Translation" );
-
-    translationFolder.add( parameters, 'translationX', -20, 20 ).name( "translate x" ).onChange(
-        function ( value ) { selectedMesh.position.setX( value ); }
-    );
-    translationFolder.add( parameters, 'translationY', -20, 20 ).name( "translate y" ).onChange(
-        function( value ) { selectedMesh.position.setY( value ); }
-    );
-    translationFolder.add( parameters, 'translationZ', -20, 20 ).name( "translate z" ).onChange(
-        function( value ) { selectedMesh.position.setZ( value ); }
-    );
-
-    // Set the sliders to start at 0.
-    parameters.translationX = parameters.translationY = parameters.translationZ = 0;
-
-    translationFolder.add( {
-        // Reset object translation and reset gui sliders.
-        resetTranslation: function() {
-            parameters.translationX = parameters.translationY = parameters.translationZ = 0;
-            selectedMesh.position.copy( selectedMesh.centroid );
-            selectedMesh.position.sub( selectedMesh.parent.mergedCentroid );
-        }
-    }, 'resetTranslation' ).name( "reset translation" );
-
-    // When an object is moved with the TransformControls (see obj_viewer.js),
-    // the GUI sliders need to be visually updated, so we do that here.
-    document.addEventListener( 'mousedown', updateTranslationGui );
-
-    function updateTranslationGui() {
-        requestAnimationFrame( updateTranslationGui );
-        if ( selectedMesh != null ) {
-            parameters.translationX = selectedMesh.position.x;
-            parameters.translationY = selectedMesh.position.y;
-            parameters.translationZ = selectedMesh.position.z;
-        }
-        for ( var i in translationFolder.__controllers )
-            translationFolder.__controllers[i].updateDisplay();
-    }
-
-}
-
-
-function createGuiMaterial( gui ) {
-
-    var parameters = {
-        color : 0x5c54dc,
-        shading : THREE.FlatShading,
-        side : THREE.DoubleSide
-    }
-
-    var constants = {
-        shadingOptions : {
-            "flat shading" : THREE.FlatShading,
-            "smooth shading" : THREE.SmoothShading
-        },
-        sideOptions : {
-            "front side" : THREE.FrontSide,
-            "back side" : THREE.BackSide,
-            "double side" : THREE.DoubleSide
-        }
-    };
-
-    var materialFolder = gui.addFolder( "Material" );
-
-    materialFolder.addColor( parameters, 'color' ).onChange(
-        function( value ) {
-            if ( typeof value === "string" ) {
-                value = value.replace('#', '0x');
-            }
-            selectedMesh.material.color.setHex( value );
-        }
-    );
-
-    materialFolder.add( parameters, 'shading', constants.shadingOptions ).onChange(
-        function( value ) {
-            if ( value === "1" ) selectedMesh.material.shading = THREE.FlatShading;
-            else if ( value === "2" ) selectedMesh.material.shading = THREE.SmoothShading;
-
-            selectedMesh.material.needsUpdate = true;
-        }
-    );
-
-    materialFolder.add( parameters, 'side', constants.sideOptions ).onChange(
-        function( value ) {
-            if ( value === "0" ) selectedMesh.material.side = THREE.FrontSide;
-            else if ( value === "1" ) selectedMesh.material.side = THREE.BackSide;
-            else if ( value === "2" ) selectedMesh.material.side = THREE.DoubleSide;
-
-            selectedMesh.material.needsUpdate = true;
-        }
-    );
-
-    // Update the GUI whenever a new object is loaded, or whenever the user clicks on the canvas.
-    document.getElementById("i_file").addEventListener( 'change', updateMaterialGui );
-    document.addEventListener( 'mousedown', updateMaterialGui );
-
-    // Wow the color updating was a pain to figure out.
-    function updateMaterialGui() {
-        if ( selectedMesh != null ) {
-            parameters.color = "#" + selectedMesh.material.color.getHexString();
-            parameters.shading = selectedMesh.material.shading;
-            parameters.side = selectedMesh.material.side;
-        }
-        for ( var i in materialFolder.__controllers )
-            materialFolder.__controllers[i].updateDisplay();
-    }
-}
 
 
 function createUploadObjFile( gui ) {
