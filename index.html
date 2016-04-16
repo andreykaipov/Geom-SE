@@ -14,6 +14,7 @@
 
     <div class="hide">
         <input type="file" id="i_file">
+        <input type="file" id="upload_texture_file">
         <a id="o_file" href="" download></a>
     </div>
 
@@ -75,12 +76,10 @@
         let gfxViewer = new GFXViewer();
         gfxViewer.init_lights();
         gfxViewer.animate();
-        gfxViewer.listen_handle_object_uploads();
-        gfxViewer.listen_raycaster_for_selection();
-        gfxViewer.listen_bounding_box_controls();
+        gfxViewer.init_event_handlers();
 
         let gfxGui = new GFXGUI( gfxViewer );
-        gfxGui.createGUI();
+        gfxGui.create();
 
     </script>
 

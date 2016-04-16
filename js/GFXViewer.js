@@ -49,16 +49,31 @@ class GFXViewer {
         this.transformControls.visible = false;
         this.scene.add( this.transformControls );
 
+        this.textureFilePaths = { "no-texture": "no-texture-url"};
+        this.loadedTextures = { "no-texture-url": new THREE.Texture() };
+
     }
 
     init_lights() {
 
-        let ambientLight = new THREE.AmbientLight( 0xffffff );
-        this.scene.add( ambientLight );
+        // let ambientLight = new THREE.AmbientLight( 0xffffff );
+        // this.scene.add( ambientLight );
 
-        let directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
-        directionalLight.position.set( 1, 1, 1 );
-        this.scene.add( directionalLight );
+        let directionalLightUp = new THREE.DirectionalLight( 0xffffff, 1 );
+        directionalLightUp.position.set( 0, 1, 0 );
+        this.scene.add( directionalLightUp );
+
+        let directionalLightDown = new THREE.DirectionalLight( 0xffffff, 1 );
+        directionalLightDown.position.set( 0, -1, 0 );
+        this.scene.add( directionalLightDown );
+    }
+
+    init_event_handlers() {
+
+        this.listen_handle_object_uploads();
+        this.listen_raycaster_for_selection();
+        this.listen_bounding_box_controls();
+        this.listen_transform_controls();
 
     }
 
@@ -121,7 +136,7 @@ class GFXViewer {
 
             self.raycaster.setFromCamera( self.mouse, self.camera );
 
-            var intersected = self.raycaster.intersectObjects( self.loadedMeshesInScene );
+            let intersected = self.raycaster.intersectObjects( self.loadedMeshesInScene );
 
             if ( intersected.length == 0 ) {
 
@@ -129,6 +144,8 @@ class GFXViewer {
 
             }
             else if ( intersected.length > 0 ) {
+
+                self.transformControls.setSpace( "local" );
 
                 // Before assigning the new selected mesh and selected object,
                 // hide the old selected stuff's bounding boxes, if they exist.
@@ -188,6 +205,8 @@ class GFXViewer {
 
                 shiftKeyUp = false; // Settings this to false prevents this if-statement from running more than once.
 
+                self.transformControls.setSpace( "world" );
+
                 self.selectedMesh.userData.boundingBox.visible = false;
                 self.selectedObject.userData.boundingBox.visible = true;
                 self.transformControls.attach( self.selectedObject );
@@ -229,6 +248,8 @@ class GFXViewer {
             if ( ! shiftKeyUp && event.keyCode == 16 ) {  // Shift key
 
                 shiftKeyUp = true; // Reset this flag.
+
+                self.transformControls.setSpace( "local" );
 
                 self.selectedMesh.userData.boundingBox.visible = true;
                 self.selectedObject.userData.boundingBox.visible = false;

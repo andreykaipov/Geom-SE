@@ -32,6 +32,9 @@ class GFXGUI {
         // this.__create_GUI_translation( this.gui );
         // this.__create_export_obj_file( this.gui );
 
+        // Makes room for the function buttons with longer names.
+        $( 'li.cr.function' ).width( 1000 );
+
     }
 
     create_gui_transform_controls() {
@@ -296,14 +299,58 @@ class GFXGUI {
 
     create_gui_material_textures( parentFolder ) {
 
-        let folder = parentFolder.addFolder( "Textures" );
-        folder.width *= 2;
+        let parameters = {
+            texture : gfxViewer.textureFilePaths[ "no-texture" ]
+        }
 
-        folder.add( {
-            uploadTexture : function() {
-                $( '#upload_texture_file' ).click();
+        let folder = parentFolder.addFolder( "Textures" );
+
+        folder.add({
+            uploadTexture: function() {
+
+                $( '#upload_texture_file' ).change( function( event ) {
+
+                    let file = event.target.files[0];
+
+                    let filePath = window.URL.createObjectURL( file );
+                    gfxViewer.textureFilePaths[ file.name ] = filePath;
+
+                    let loader = new THREE.TextureLoader();
+                    let texture = loader.load( filePath , function( texture ) {
+                        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                        texture.repeat.set(1,1);
+                        texture.needsUpdate = true;
+                    });
+                    gfxViewer.loadedTextures[ filePath ] = texture;
+
+                    updateTemplate();
+
+                }).click();
+
             }
         }, 'uploadTexture' ).name( "upload a texture" );
+
+        folder.add( parameters, 'texture', gfxViewer.textureFilePaths ).name( "textures" );
+
+        function updateTemplate() {
+
+            folder.__controllers[1].remove();
+            folder.add( parameters, 'texture', gfxViewer.textureFilePaths ).name( "textures" ).onChange( function ( value ) {
+                console.log( value );
+                console.log( gfxViewer.loadedTextures[ value ] );
+                if ( value == "no-texture-url" ) {
+                    gfxViewer.selectedMesh.material.map = null;
+                    gfxViewer.selectedMesh.material.needsUpdate = true;
+                }
+                else {
+                    let selectedTexture = gfxViewer.loadedTextures[ value ];
+                    OBJHandler.compute_mesh_uvs( gfxViewer.selectedMesh );
+                    gfxViewer.selectedMesh.material.map = selectedTexture;
+                    gfxViewer.selectedMesh.material.needsUpdate = true;
+                }
+            });
+
+        }
 
     }
 
