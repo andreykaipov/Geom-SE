@@ -56,6 +56,15 @@ class GFXViewer {
         this.transformControls.visible = false;
         this.scene.add( this.transformControls );
 
+        // For organizing our lights. This is initialized down below, and used from the GUI.
+        this.lights = {
+            ambient: new THREE.AmbientLight( 0x000000 ),
+            directional: {
+                "dir-light-1": new THREE.DirectionalLight( 0xffffff, 1 ),
+                "controls": new THREE.TransformControls( this.camera, this.renderer.domElement )
+            }
+        };
+
         this.textureFilePaths = { "no-texture": "no-texture-url"};
         this.loadedTextures = { "no-texture-url": new THREE.Texture() };
 
@@ -63,16 +72,43 @@ class GFXViewer {
 
     init_lights() {
 
-        // let ambientLight = new THREE.AmbientLight( 0xffffff );
-        // this.scene.add( ambientLight );
+        // Make ambient light black to start off, essentially no ambient light.
+        let ambientLight = new THREE.AmbientLight( 0x000000 );
+        this.scene.add( ambientLight );
 
-        let directionalLightUp = new THREE.DirectionalLight( 0xffffff, 1 );
-        directionalLightUp.position.set( 0, 1, 0 );
-        this.scene.add( directionalLightUp );
+        // Initialize our directional light, and attach some controls to it.
+        this.init_directional_light( this.lights.directional["dir-light-1"] );
+        this.lights.directional["controls"].setSize( 0.3 );
+        this.scene.add( this.lights.directional["controls"] );
 
-        let directionalLightDown = new THREE.DirectionalLight( 0xffffff, 1 );
-        directionalLightDown.position.set( 0, -1, 0 );
-        this.scene.add( directionalLightDown );
+        // Update the light's guide-line's whenever the directional light is moved.
+        this.lights.directional["controls"].addEventListener( 'objectChange', function( event ) {
+            let directionalLight = event.target.object;
+            directionalLight.children[0].geometry.vertices[0] = directionalLight.position.clone().negate();
+            directionalLight.children[0].geometry.verticesNeedUpdate = true;
+        });
+
+    }
+
+    /* Position the light, attach the controls, add the guide-line, and add it to the scene.
+     * This method will also be used in the GFXGUI when we are adding lights. */
+    init_directional_light( directionalLight ) {
+
+        directionalLight.position.set( 0, 1, 0 );
+
+        this.lights.directional["controls"].attach( directionalLight );
+
+        // This line represents the direction the directional light is shining.
+        let lineGeometry = new THREE.Geometry();
+        lineGeometry.vertices.push(
+            directionalLight.position.clone().negate(),
+            new THREE.Vector3( 0, 0, 0 )
+        );
+        let line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial({ color: 0xffffff }) );
+        directionalLight.add( line );
+
+        this.scene.add( directionalLight );
+
     }
 
     init_event_handlers() {

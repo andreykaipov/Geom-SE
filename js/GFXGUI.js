@@ -21,6 +21,7 @@ class GFXGUI {
 
     create() {
         this.create_gui_scene_controls();
+        this.create_gui_lighting_controls();
         this.create_gui_transform_controls();
         this.create_gui_material_controls();
 
@@ -38,6 +39,14 @@ class GFXGUI {
 
         let controlFolder = this.gui.addFolder( "Scene" );
         this.create_gui_scene( controlFolder );
+
+    }
+
+    create_gui_lighting_controls() {
+
+        let controlFolder = this.gui.addFolder( "Lighting" );
+        this.create_gui_lighting_ambient( controlFolder );
+        this.create_gui_lighting_directional( controlFolder );
 
     }
 
@@ -92,6 +101,7 @@ class GFXGUI {
         });
 
         folder.addColor( parameters, 'rendererColor' ).name( "color" ).onChange( function( value ) {
+            if ( typeof value == "string" ) { value = parseInt( value.slice(1), 16 ); }
             gfxViewer.renderer.setClearColor( value, 1 );
         });
 
@@ -105,6 +115,117 @@ class GFXGUI {
         });
 
     }
+
+    create_gui_lighting_ambient( parentFolder ) {
+
+        let folder = parentFolder.addFolder( "Ambient" );
+
+        let parameters = {
+            color: 0xffffff,
+         };
+
+        // If the user enters a color by keyboard, the value becomes a string, and we need to convert.
+        folder.addColor( parameters, 'color' ).name( "color" ).onChange( function( value ) {
+            if ( typeof value == "string" ) { value = parseInt( value.slice(1), 16 ); }
+            gfxViewer.lights.ambient.color.setHex( value );
+        });
+
+    }
+
+    create_gui_lighting_directional( parentFolder ) {
+
+        let folder = parentFolder.addFolder( "Directional" );
+
+        // This object is meant for options. It contains identical key and value pairs, since the values
+        // returned from GUI selection are always strings. So, the following keys are for displaying our
+        // options via the GUI, and its values are for accessing the actual directional lights.
+        // Yeah it's kinda stupid, but I can't complain.
+        let directionalLightOptions = {
+            "dir-light-1": "dir-light-1"
+        };
+
+        let dirLightCount = 1;
+
+        let parameters = {
+            showGuide: true,
+            showControl: true,
+            color: 0xffffff,
+            intensity: 1,
+            light: "dir-light-1",
+        };
+
+        // Show or hide the guides for the directional lights.
+        folder.add( parameters, 'showGuide' ).name( "show guides" ).onChange( function( value ) {
+            Object.keys( gfxViewer.lights.directional ).forEach( function( key ) {
+                if ( key !== "controls" ) {
+                    gfxViewer.lights.directional[ key ].children[0].visible = value;
+                }
+            });
+        });
+
+        // Show or hide the controller for the directional lights.
+        folder.add( parameters, 'showControl' ).name( "show control" ).onChange( function( value ) {
+            gfxViewer.lights.directional["controls"].visible = value;
+        });
+
+        // Change the color of the directional light.
+        folder.addColor( parameters, 'color' ).name( "color" ).onChange( function( value ) {
+            if ( typeof value == "string" ) { value = parseInt( value.slice(1), 16 ); }
+            gfxViewer.lights.directional[ parameters.light ].color.setHex( value );
+            gfxViewer.lights.directional[ parameters.light ].children[0].material.color.setHex( value );
+        });
+
+        // Change its intensity.
+        folder.add( parameters, 'intensity', 0, 10 ).onChange( function( value ) {
+            gfxViewer.lights.directional[ parameters.light ].intensity = value;
+        });
+
+        // Gives the user an option to add a directional light into the scene.
+        folder.add({
+            addDirectionalLight: function() {
+
+                // Adds the light and initializes it, and obeys the two boolean controllers above.
+                let directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
+                gfxViewer.init_directional_light( directionalLight );
+                directionalLight.children[0].visible = parameters.showGuide;
+                gfxViewer.lights.directional["controls"].visible = parameters.showControl;
+
+                // Updates our parameters, options, and directional lights hashes.
+                dirLightCount += 1;
+                parameters.light = directionalLightOptions[ `dir-light-${dirLightCount}` ] = `dir-light-${dirLightCount}`;
+                gfxViewer.lights.directional[ `dir-light-${dirLightCount}` ] = directionalLight;
+
+                // When added, update the options controller.
+                updateDirectionalLightOptions();
+
+            }
+        }, 'addDirectionalLight' ).name( "add directional light" );
+
+        // Create the initial folder of default directional light optiona.
+        folder.add( parameters, 'light', directionalLightOptions ).name( "lights" );
+
+        // To update the options, we unfortunately have to actually remove the old one, and add a new one!
+        // This is another limitation of dat.gui, but I can't complain!
+        function updateDirectionalLightOptions() {
+
+            folder.__controllers[ folder.__controllers.length - 1 ].remove();
+
+            // Attach the controls to the selected light, and update the above parameters when selecting a new light.
+            folder.add( parameters, 'light', directionalLightOptions ).name( "lights" ).onChange( function( value ) {
+
+                let selectedLight = gfxViewer.lights.directional[ value ];
+                gfxViewer.lights.directional["controls"].attach( selectedLight );
+
+                parameters.color = selectedLight.color.getHex();
+                parameters.intensity = selectedLight.intensity;
+                folder.__controllers.forEach( controller => controller.updateDisplay() );
+
+            });
+
+        }
+
+    }
+
 
     /* Creates a GUI for the scale for the selectedThing under a designated folder.
      * We pass the selectedThing as a string so we can access the updated property from the gfxViewer.
@@ -306,10 +427,12 @@ class GFXGUI {
         }
 
         folder.addColor( parameters, 'diffuse' ).onChange( function( value ) {
+            if ( typeof value == "string" ) { value = parseInt( value.slice(1), 16 ); }
             gfxViewer.selectedMesh.material.color.setHex( value );
         });
 
         folder.addColor( parameters, 'emissive' ).onChange( function( value ) {
+            if ( typeof value == "string" ) { value = parseInt( value.slice(1), 16 ); }
             gfxViewer.selectedMesh.material.emissive.setHex( value );
         });
 
@@ -318,6 +441,7 @@ class GFXGUI {
         });
 
         folder.addColor( parameters, 'specular' ).onChange( function( value ) {
+            if ( typeof value == "string" ) { value = parseInt( value.slice(1), 16 ); }
             gfxViewer.selectedMesh.material.specular.setHex( value );
         });
 
