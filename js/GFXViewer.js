@@ -37,6 +37,10 @@ class GFXViewer {
         this.loadedMeshesInScene = [];
         this.selectedMesh = new THREE.Mesh();
         this.selectedObject = new THREE.Object3D();
+
+        // Flag for use in the GFXGUI. We will check this flag before we manipulate any bounding boxes.
+        this.boundingBoxesOn = true;
+
         // this.selectedBoundingBox = new THREE.BoxHelper( this.selectedMesh );
         // this.scene.add( this.selectedBoundingBox );
         // this.selectedMeshes = new THREE.Group();
@@ -152,10 +156,10 @@ class GFXViewer {
 
                 // Before assigning the new selected mesh and selected object,
                 // hide the old selected stuff's bounding boxes, if they exist.
-                if ( self.selectedObject.userData.boundingBox ) {
+                if ( self.selectedObject.userData.boundingBox && self.boundingBoxesOn ) {
                     self.selectedObject.userData.boundingBox.visible = false;
                 }
-                if ( self.selectedMesh.userData.boundingBox ) {
+                if ( self.selectedMesh.userData.boundingBox && self.boundingBoxesOn ) {
                     self.selectedMesh.userData.boundingBox.visible = false;
                 }
 
@@ -166,7 +170,9 @@ class GFXViewer {
                 console.log("You selected the " + self.selectedMesh.name + " mesh group of the " + self.selectedObject.name + " object.");
 
                 // Show the new selected mesh's bounding box.
-                self.selectedMesh.userData.boundingBox.visible = true;
+                if ( self.boundingBoxesOn ) {
+                    self.selectedMesh.userData.boundingBox.visible = true;
+                }
                 self.transformControls.attach( self.selectedMesh );
 
                 // If double clicked, then focus in on the selected mesh for that cool effect.
@@ -210,8 +216,10 @@ class GFXViewer {
 
                 self.transformControls.setSpace( "world" );
 
-                self.selectedMesh.userData.boundingBox.visible = false;
-                self.selectedObject.userData.boundingBox.visible = true;
+                if ( self.boundingBoxesOn ) {
+                    self.selectedMesh.userData.boundingBox.visible = false;
+                    self.selectedObject.userData.boundingBox.visible = true;
+                }
                 self.transformControls.attach( self.selectedObject );
 
                 self.selectedObject.children.forEach( function( child ) {
@@ -242,6 +250,11 @@ class GFXViewer {
                 self.selectedMesh.userData.boundingBox.visible = false;
 
                 OBJHandler.recompute_object_bounding_box( self.selectedObject );
+                self.transformControls.attach( self.selectedObject );
+
+                if ( ! self.boundingBoxesOn ) {
+                    self.selectedObject.userData.boundingBox.visible = false;
+                }
 
                 shiftKeyUp = true;
 
@@ -254,8 +267,10 @@ class GFXViewer {
 
                 self.transformControls.setSpace( "local" );
 
-                self.selectedMesh.userData.boundingBox.visible = true;
-                self.selectedObject.userData.boundingBox.visible = false;
+                if ( self.boundingBoxesOn ) {
+                    self.selectedMesh.userData.boundingBox.visible = true;
+                    self.selectedObject.userData.boundingBox.visible = false;
+                }
                 self.transformControls.attach( self.selectedMesh );
 
                 self.selectedObject.children.forEach( function( child ) {

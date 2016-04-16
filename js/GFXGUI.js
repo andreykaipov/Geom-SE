@@ -27,13 +27,10 @@ class GFXGUI {
         this.create_upload_obj_file();
         this.create_export_obj_file();
 
-        // this.__create_GUI_scale( this.gui );
-        // this.__create_GUI_rotation( this.gui );
-        // this.__create_GUI_translation( this.gui );
-        // this.__create_export_obj_file( this.gui );
-
-        // Makes room for the function buttons with longer names.
+        // Make room for the function controllers with longer names.
+        // Also move boolean controller's checkboxes to the right a bit.
         $( 'li.cr.function' ).width( 1000 );
+        $( 'li.cr.boolean input' ).width( 80 );
 
     }
 
@@ -76,13 +73,22 @@ class GFXGUI {
 
         let parameters = {
             axes: true,
+            bBoxes: true,
             rendererColor: 0x3a3a3a,
             cameraFOV: 60,
             renderFPS: 60
         };
 
+        let self = this;
+
         folder.add( parameters, 'axes' ).name( "axes" ).onChange( function( value ) {
             gfxViewer.axes.visible = value;
+        });
+
+        folder.add( parameters, 'bBoxes' ).name( "show b-boxes" ).onChange( function( value ) {
+            gfxViewer.selectedMesh.userData.boundingBox.visible = value;
+            gfxViewer.selectedObject.userData.boundingBox.visible = value;
+            gfxViewer.boundingBoxesOn = value;
         });
 
         folder.addColor( parameters, 'rendererColor' ).name( "color" ).onChange( function( value ) {
