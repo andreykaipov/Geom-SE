@@ -21,10 +21,11 @@ class GFXGUI {
 
     create() {
 
-        this.create_controls_gui();
-        // this.create_controls_mesh_material();
+        this.create_gui_transform_controls();
+        this.create_gui_material_controls();
 
         this.create_upload_obj_file();
+        this.create_export_obj_file();
 
         // this.__create_GUI_scale( this.gui );
         // this.__create_GUI_rotation( this.gui );
@@ -33,9 +34,9 @@ class GFXGUI {
 
     }
 
-    create_controls_gui() {
+    create_gui_transform_controls() {
 
-        let controlFolder = this.gui.addFolder( "Transform Controls" );
+        let controlFolder = this.gui.addFolder( "Transformations" );
 
         let objectFolder = controlFolder.addFolder( "object controls (world)" );
         this.create_gui_scale( "selectedObject", objectFolder );
@@ -49,11 +50,13 @@ class GFXGUI {
 
     }
 
-    create_controls_mesh_material() {
+    create_gui_material_controls() {
 
-        let controlFolder = this.gui.addFolder( "Material Controls" );
+        let controlFolder = this.gui.addFolder( "Mesh Material" );
 
-        this.create_gui_mesh_material( controlFolder );
+        this.create_gui_material_appearance( controlFolder );
+        this.create_gui_material_colors( controlFolder );
+        this.create_gui_material_textures( controlFolder );
 
     }
 
@@ -174,52 +177,16 @@ class GFXGUI {
 
     }
 
-    create_gui_material_color( parentFolder ) {
+    create_gui_material_appearance( parentFolder ) {
 
-        let colorFolder = parentFolder.addFolder( "Color" );
-
-        let parameters = {
-            diffuse : 0x000000,
-            emissive : 0x000000,
-            specular : 0x000000
-        }
-
-        colorFolder.addColor( parameters, 'diffuse' ).onChange( function( value ) {
-            gfxViewer.selectedMesh.material.color.setHex( value );
-        });
-        colorFolder.addColor( parameters, 'emissive' ).onChange( function( value ) {
-            gfxViewer.selectedMesh.material.emissive.setHex( value );
-        });
-        colorFolder.addColor( parameters, 'specular' ).onChange( function( value ) {
-            gfxViewer.selectedMesh.material.specular.setHex( value );
-        });
-
-        // When a new object is selected by our raycaster, update the parameters of the GUI.
-        $('body').click( function() {
-            let intersected = gfxViewer.raycaster.intersectObjects( gfxViewer.loadedMeshesInScene );
-            let material = gfxViewer.selectedMesh.material;
-            if ( intersected.length > 0 ) {
-                parameters.diffuse = material.color.getHex();
-                parameters.emissive = material.emissive.getHex();
-                parameters.specular = material.specular.getHex();
-                colorFolder.__controllers.forEach( controller => controller.updateDisplay() );
-            }
-        });
-
-    }
-
-    create_gui_mesh_material( parentFolder ) {
-
-        // let folder = parentFolder.addFolder( "Material" );
+        let folder = parentFolder.addFolder( "Appearance" );
 
         let parameters = {
-            diffuse : 0x000000,
-            emissive : 0x000000,
-            specular : 0x000000,
+            opacity: 1,
             shading : THREE.FlatShading,
             side : THREE.DoubleSide,
-            transparent: false,
-            opacity: 1
+            wireframe : false,
+            depthTest : true
         }
 
         let constants = {
@@ -234,25 +201,34 @@ class GFXGUI {
             }
         };
 
+        folder.add( parameters, 'opacity', 0, 1 ).onChange( function( value ) {
+            if ( value == 1 ) {
+                gfxViewer.selectedMesh.material.transparent = false;
+            }
+            else {
+                gfxViewer.selectedMesh.material.transparent = true;
+                gfxViewer.selectedMesh.material.opacity = value;
+            }
+        });
 
-        parentFolder.add( parameters, 'shading', constants.shadingOptions ).onChange( function( value ) {
-            // 1/2 corresponds to Flat/Smooth shading respectively.
+        // The integers 1/2 corresponds to Flat/Smooth shading respectively.
+        folder.add( parameters, 'shading', constants.shadingOptions ).onChange( function( value ) {
             gfxViewer.selectedMesh.material.shading = parseInt( value );
             gfxViewer.selectedMesh.material.needsUpdate = true;
         });
 
-        parentFolder.add( parameters, 'side', constants.sideOptions ).onChange( function( value ) {
-            // 0/1/2 corresponds to Front/Back/Double side respectively.
+        // The integers 0/1/2 corresponds to Front/Back/Double side respectively.
+        folder.add( parameters, 'side', constants.sideOptions ).onChange( function( value ) {
             gfxViewer.selectedMesh.material.side = parseInt( value );
             gfxViewer.selectedMesh.material.needsUpdate = true;
         });
 
-        parentFolder.add( parameters, 'transparent' ).onChange( function( value ) {
-            gfxViewer.selectedMesh.material.transparent = value;
+        folder.add( parameters, 'wireframe' ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.wireframe = value;
         });
 
-        parentFolder.add( parameters, 'opacity', 0, 1 ).onChange( function( value ) {
-            gfxViewer.selectedMesh.material.opacity = value;
+        folder.add( parameters, 'depthTest' ).name( "depth test" ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.depthTest = value;
         });
 
         // When a new object is selected by our raycaster, update the parameters of the GUI.
@@ -260,14 +236,74 @@ class GFXGUI {
             let intersected = gfxViewer.raycaster.intersectObjects( gfxViewer.loadedMeshesInScene );
             let material = gfxViewer.selectedMesh.material;
             if ( intersected.length > 0 ) {
-                parameters.diffuse = material.color.getHex();
-                parameters.emissive = material.emissive.getHex();
-                parameters.specular = material.specular.getHex();
+                parameters.opacity = material.opacity;
                 parameters.shading = material.shading;
                 parameters.side = material.side;
-                colorFolder.__controllers.forEach( controller => controller.updateDisplay() );
+                parameters.wireframe = material.wireframe;
+                parameters.depthTest = material.depthTest;
+                folder.__controllers.forEach( controller => controller.updateDisplay() );
             }
         });
+
+    }
+
+    create_gui_material_colors( parentFolder ) {
+
+        let folder = parentFolder.addFolder( "Color" );
+
+        let parameters = {
+            diffuse : 0x000000,
+            emissive : 0x000000,
+            emissiveIntensity : 1,
+            specular : 0x000000,
+            shininess : 30
+        }
+
+        folder.addColor( parameters, 'diffuse' ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.color.setHex( value );
+        });
+
+        folder.addColor( parameters, 'emissive' ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.emissive.setHex( value );
+        });
+
+        folder.add( parameters, 'emissiveIntensity', 0, 10 ).name( "intensity" ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.emissiveIntensity = value;
+        });
+
+        folder.addColor( parameters, 'specular' ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.specular.setHex( value );
+        });
+
+        folder.add( parameters, 'shininess', 0, 100 ).onChange( function( value ) {
+            gfxViewer.selectedMesh.material.shininess = value;
+        });
+
+        $('body').click( function() {
+            let intersected = gfxViewer.raycaster.intersectObjects( gfxViewer.loadedMeshesInScene );
+            let material = gfxViewer.selectedMesh.material;
+            if ( intersected.length > 0 ) {
+                parameters.diffuse = material.color.getHex();
+                parameters.emissive = material.emissive.getHex();
+                parameters.emissiveIntensity = material.emissiveIntensity;
+                parameters.specular = material.specular.getHex();
+                parameters.shininess = material.shininess;
+                folder.__controllers.forEach( controller => controller.updateDisplay() );
+            }
+        });
+
+    }
+
+    create_gui_material_textures( parentFolder ) {
+
+        let folder = parentFolder.addFolder( "Textures" );
+        folder.width *= 2;
+
+        folder.add( {
+            uploadTexture : function() {
+                $( '#upload_texture_file' ).click();
+            }
+        }, 'uploadTexture' ).name( "upload a texture" );
 
     }
 
@@ -279,15 +315,15 @@ class GFXGUI {
                 document.getElementById("i_file").click();
 
             }
-        }, 'uploadObj').name( "upload an obj file" );
+        }, 'uploadObj' ).name( "upload an obj file" );
 
     }
 
-    __create_export_obj_file( gui ) {
+    create_export_obj_file() {
 
         let self = this;
 
-        gui.add({
+        this.gui.add({
             exportObj: function() {
 
                 let exporter = new THREE.OBJExporter();
@@ -302,7 +338,7 @@ class GFXGUI {
                 link.click()
 
             }
-        }, 'exportObj').name( "export as obj" );
+        }, 'exportObj' ).name( "export as obj" );
 
     }
 }
@@ -340,17 +376,4 @@ function createComputeInfo( gui ) {
 
 }
 
-
-
-function createUploadObjFile( gui ) {
-
-    gui.add({
-        uploadObj: function() {
-
-            document.getElementById("i_file").click();
-
-        }
-    }, 'uploadObj').name( "upload an obj file" );
-
-}
 */
