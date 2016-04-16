@@ -20,7 +20,7 @@ class GFXGUI {
     }
 
     create() {
-
+        this.create_gui_scene_controls();
         this.create_gui_transform_controls();
         this.create_gui_material_controls();
 
@@ -34,6 +34,13 @@ class GFXGUI {
 
         // Makes room for the function buttons with longer names.
         $( 'li.cr.function' ).width( 1000 );
+
+    }
+
+    create_gui_scene_controls() {
+
+        let controlFolder = this.gui.addFolder( "Scene" );
+        this.create_gui_scene( controlFolder );
 
     }
 
@@ -60,6 +67,36 @@ class GFXGUI {
         this.create_gui_material_appearance( controlFolder );
         this.create_gui_material_colors( controlFolder );
         this.create_gui_material_textures( controlFolder );
+
+    }
+
+    create_gui_scene( parentFolder ) {
+
+        let folder = parentFolder;
+
+        let parameters = {
+            axes: true,
+            rendererColor: 0x3a3a3a,
+            cameraFOV: 60,
+            renderFPS: 60
+        };
+
+        folder.add( parameters, 'axes' ).name( "axes" ).onChange( function( value ) {
+            gfxViewer.axes.visible = value;
+        });
+
+        folder.addColor( parameters, 'rendererColor' ).name( "color" ).onChange( function( value ) {
+            gfxViewer.renderer.setClearColor( value, 1 );
+        });
+
+        folder.add( parameters, 'cameraFOV', 0, 90 ).name( "camera fov" ).onChange( function( value ) {
+            gfxViewer.camera.fov = value;
+            gfxViewer.camera.updateProjectionMatrix();
+        });
+
+        folder.add( parameters, 'renderFPS', 1, 60 ).name( "render fps" ).onChange( function( value ) {
+            gfxViewer.renderFPS = value
+        });
 
     }
 

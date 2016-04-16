@@ -9,7 +9,7 @@ class GFXViewer {
         this.camera = new THREE.PerspectiveCamera();
         this.camera.fov = 60; // in degs
         this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.near = 0.1;
+        this.camera.near = 0.05;
         this.camera.far = 8000;
         this.camera.position.set( 0, 0.1, 2 );
         this.camera.updateProjectionMatrix();
@@ -26,6 +26,8 @@ class GFXViewer {
             this.camera.updateProjectionMatrix();
         });
 
+        this.renderFPS = 60;
+
         // For camera control with the mouse.
         this.camera.orbitControls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
 
@@ -39,8 +41,9 @@ class GFXViewer {
         // this.scene.add( this.selectedBoundingBox );
         // this.selectedMeshes = new THREE.Group();
 
-        // Add xyz axes
-        this.scene.add( this.__makeAxes( 5 ) );
+        // Add xyz axes and keep a reference to it.
+        this.axes = this.__makeAxes( 5 );
+        this.scene.add( this.axes );
 
         // For control of selected mesh and object.
         this.transformControls = new THREE.TransformControls( this.camera, this.renderer.domElement );
@@ -325,7 +328,10 @@ class GFXViewer {
 
     animate() {
 
-        requestAnimationFrame( this.animate.bind( this ) );
+        let self = this;
+        setTimeout( function() {
+            requestAnimationFrame( self.animate.bind( self ) );
+        }, 1000 / self.renderFPS );
 
         this.__render();
         this.__update();
