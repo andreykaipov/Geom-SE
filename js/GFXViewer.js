@@ -65,16 +65,15 @@ class GFXViewer {
             }
         };
 
-        this.textureFilePaths = { "no-texture": "no-texture-url"};
+        this.textureFilePaths = { "no-texture": "no-texture-url" };
         this.loadedTextures = { "no-texture-url": new THREE.Texture() };
 
     }
 
     init_lights() {
 
-        // Make ambient light black to start off, essentially no ambient light.
-        let ambientLight = new THREE.AmbientLight( 0x000000 );
-        this.scene.add( ambientLight );
+        // Add ambient light.
+        this.scene.add( this.lights.ambient );
 
         // Initialize our directional light, and attach some controls to it.
         this.init_directional_light( this.lights.directional["dir-light-1"] );
@@ -134,7 +133,8 @@ class GFXViewer {
 
             $.ajax({
                 url: filePath,
-                contentType: "text/plain",
+                contents: { obj: /obj/ },
+                contentType: 'text/plain',
                 mimeType: 'text/plain; charset=x-user-defined',
                 success: function( fileAsString ) {
 
@@ -152,8 +152,12 @@ class GFXViewer {
                     OBJHandler.draw_mesh_bounding_boxes( object );
                     OBJHandler.recognize_meshes_for_raycaster( object, self.loadedMeshesInScene );
 
-                    self.transformControls.attach( object );
+                    // Hide previous selected bounding boxes before loading again.
+                    self.show_bounding_boxes( false );
+
                     self.selectedObject = object;
+                    self.selectedMesh = object.children[ 0 ];
+                    self.transformControls.attach( object );
 
                     self.scene.add( object );
 
@@ -163,6 +167,27 @@ class GFXViewer {
                 }
             });
 
+        }
+
+    }
+
+    /* Toggles the bounding boxes of the selected mesh and selected object.
+     * If the object is a single-mesh object, then we will always hide the bounding box! */
+    show_bounding_boxes( toggle ) {
+
+        let meshBBox = gfxViewer.selectedMesh.userData.boundingBox;
+        let objBBox = gfxViewer.selectedObject.userData.boundingBox;
+
+        if ( meshBBox ) {
+            meshBBox.visible = toggle;
+        }
+        if ( objBBox ) {
+            if ( gfxViewer.selectedObject.userData.meshCount === 1 ) {
+                objBBox.visible = false;
+            }
+            else {
+                objBBox.visible = toggle;
+            }
         }
 
     }

@@ -94,10 +94,9 @@ class GFXGUI {
             gfxViewer.axes.visible = value;
         });
 
+        // Show or hide bounding boxes.
         folder.add( parameters, 'bBoxes' ).name( "show b-boxes" ).onChange( function( value ) {
-            gfxViewer.selectedMesh.userData.boundingBox.visible = value;
-            gfxViewer.selectedObject.userData.boundingBox.visible = value;
-            gfxViewer.boundingBoxesOn = value;
+            gfxViewer.show_bounding_boxes( value );
         });
 
         folder.addColor( parameters, 'rendererColor' ).name( "color" ).onChange( function( value ) {
@@ -201,7 +200,7 @@ class GFXGUI {
             }
         }, 'addDirectionalLight' ).name( "add directional light" );
 
-        // Create the initial folder of default directional light optiona.
+        // Create the initial folder of default directional light options.
         folder.add( parameters, 'light', directionalLightOptions ).name( "lights" );
 
         // To update the options, we unfortunately have to actually remove the old one, and add a new one!
@@ -225,7 +224,6 @@ class GFXGUI {
         }
 
     }
-
 
     /* Creates a GUI for the scale for the selectedThing under a designated folder.
      * We pass the selectedThing as a string so we can access the updated property from the gfxViewer.
@@ -398,19 +396,13 @@ class GFXGUI {
             gfxViewer.selectedMesh.material.depthTest = value;
         });
 
-        // When a new object is selected by our raycaster, update the parameters of the GUI.
-        $('body').click( function() {
-            let intersected = gfxViewer.raycaster.intersectObjects( gfxViewer.loadedMeshesInScene );
-            let material = gfxViewer.selectedMesh.material;
-            if ( intersected.length > 0 ) {
-                parameters.opacity = material.opacity;
-                parameters.shading = material.shading;
-                parameters.side = material.side;
-                parameters.wireframe = material.wireframe;
-                parameters.depthTest = material.depthTest;
-                folder.__controllers.forEach( controller => controller.updateDisplay() );
-            }
-        });
+        eval( this.macro_update_material_parameters(`
+            parameters.opacity = material.opacity;
+            parameters.shading = material.shading;
+            parameters.side = material.side;
+            parameters.wireframe = material.wireframe;
+            parameters.depthTest = material.depthTest;
+        `));
 
     }
 
@@ -449,25 +441,22 @@ class GFXGUI {
             gfxViewer.selectedMesh.material.shininess = value;
         });
 
-        $('body').click( function() {
-            let intersected = gfxViewer.raycaster.intersectObjects( gfxViewer.loadedMeshesInScene );
-            let material = gfxViewer.selectedMesh.material;
-            if ( intersected.length > 0 ) {
-                parameters.diffuse = material.color.getHex();
-                parameters.emissive = material.emissive.getHex();
-                parameters.emissiveIntensity = material.emissiveIntensity;
-                parameters.specular = material.specular.getHex();
-                parameters.shininess = material.shininess;
-                folder.__controllers.forEach( controller => controller.updateDisplay() );
-            }
-        });
-
+        eval( this.macro_update_material_parameters(`
+            parameters.diffuse = material.color.getHex();
+            parameters.emissive = material.emissive.getHex();
+            parameters.emissiveIntensity = material.emissiveIntensity;
+            parameters.specular = material.specular.getHex();
+            parameters.shininess = material.shininess;
+        `));
     }
 
+    /* Texture options are the same deal as directional light options.
+     * We have to use two hashes to show the options and access the textures,
+     * and we also have to remove and add back again the options controller to update it. */
     create_gui_material_textures( parentFolder ) {
 
         let parameters = {
-            texture : gfxViewer.textureFilePaths[ "no-texture" ]
+            texture: gfxViewer.textureFilePaths[ "no-texture" ]
         }
 
         let folder = parentFolder.addFolder( "Textures" );
@@ -478,19 +467,20 @@ class GFXGUI {
                 $( '#upload_texture_file' ).change( function( event ) {
 
                     let file = event.target.files[0];
-
                     let filePath = window.URL.createObjectURL( file );
                     gfxViewer.textureFilePaths[ file.name ] = filePath;
 
                     let loader = new THREE.TextureLoader();
                     let texture = loader.load( filePath , function( texture ) {
+                        texture.name = file.name;
                         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                         texture.repeat.set(1,1);
                         texture.needsUpdate = true;
                     });
+
                     gfxViewer.loadedTextures[ filePath ] = texture;
 
-                    updateTemplate();
+                    updateTextureOptions();
 
                 }).click();
 
@@ -499,13 +489,13 @@ class GFXGUI {
 
         folder.add( parameters, 'texture', gfxViewer.textureFilePaths ).name( "textures" );
 
-        function updateTemplate() {
+        function updateTextureOptions() {
 
-            folder.__controllers[1].remove();
+            folder.__controllers[ folder.__controllers.length - 1].remove();
+
             folder.add( parameters, 'texture', gfxViewer.textureFilePaths ).name( "textures" ).onChange( function ( value ) {
-                console.log( value );
-                console.log( gfxViewer.loadedTextures[ value ] );
-                if ( value == "no-texture-url" ) {
+
+                if ( value === "no-texture-url" ) {
                     gfxViewer.selectedMesh.material.map = null;
                     gfxViewer.selectedMesh.material.needsUpdate = true;
                 }
@@ -515,9 +505,16 @@ class GFXGUI {
                     gfxViewer.selectedMesh.material.map = selectedTexture;
                     gfxViewer.selectedMesh.material.needsUpdate = true;
                 }
+
             });
 
         }
+
+        eval( this.macro_update_material_parameters(`
+            let key = gfxViewer.selectedMesh.material.map ? gfxViewer.selectedMesh.material.map.name
+                                                          : "no-texture";
+            parameters.texture = gfxViewer.textureFilePaths[ key ];
+        `));
 
     }
 
@@ -555,6 +552,34 @@ class GFXGUI {
         }, 'exportObj' ).name( "export as obj" );
 
     }
+
+    /* This is a C-like macro where we can pass some code as the argument, and return some more code,
+     * evaluating it later. It saves a few lines here and there... plus this is also really cool. */
+    macro_update_material_parameters( codeForParameterUpdates ) {
+        return `
+            // If an object is uploaded or selected by the raycaster, update the parameters.
+            $(document).ajaxComplete( update_parameters );
+            $('body').click( update_parameters );
+
+            function update_parameters( event, xhr, settings ) {
+                let testCondition = false;
+                let material = gfxViewer.selectedMesh.material;
+
+                if ( event.type === 'ajaxComplete' ) {
+                    if ( settings.contents.hasOwnProperty('obj') ) { testCondition = true; }
+                }
+                if ( event.type === 'click' ) {
+                    let intersected = gfxViewer.raycaster.intersectObjects( gfxViewer.loadedMeshesInScene );
+                    testCondition = intersected.length > 0;
+                }
+                if ( testCondition ) {
+                    ${codeForParameterUpdates}
+                    folder.__controllers.forEach( controller => controller.updateDisplay() );
+                }
+            }
+        `;
+    }
+
 }
 
 
