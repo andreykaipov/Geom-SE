@@ -4,6 +4,7 @@ class GFXViewer {
 
     constructor() {
 
+        // Scene, camera, and renderer.
         this.scene = new THREE.Scene();
 
         this.camera = new THREE.PerspectiveCamera();
@@ -19,13 +20,7 @@ class GFXViewer {
         this.renderer.setSize( window.innerWidth, window.innerHeight );
         $('#gfxContainer').append( this.renderer.domElement );
 
-        // On resize of the window, resize the renderer and adjust camera accordingly.
-        $(window).resize( event => {
-            this.renderer.setSize( window.innerWidth,  window.innerHeight );
-            this.camera.aspect = window.innerWidth /  window.innerHeight;
-            this.camera.updateProjectionMatrix();
-        });
-
+        // Render how many frames per second?
         this.renderFPS = 60;
 
         // For camera control with the mouse.
@@ -35,15 +30,12 @@ class GFXViewer {
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
         this.loadedMeshesInScene = [];
+
+        // For like everything!
         this.selectedMesh = new THREE.Mesh();
+        this.selectedMesh.name = "undefined";
         this.selectedObject = new THREE.Object3D();
-
-        // Flag for use in the GFXGUI. We will check this flag before we manipulate any bounding boxes.
-        this.boundingBoxesOn = true;
-
-        // this.selectedBoundingBox = new THREE.BoxHelper( this.selectedMesh );
-        // this.scene.add( this.selectedBoundingBox );
-        // this.selectedMeshes = new THREE.Group();
+        this.selectedObject.name = "undefined";
 
         // Add xyz axes and keep a reference to it.
         this.axes = this.__makeAxes( 5 );
@@ -65,8 +57,17 @@ class GFXViewer {
             }
         };
 
+        // Flag for us in the GFXGUI. We will check this flag before we manipulate any bounding boxes.
+        this.boundingBoxesOn = true;
+
+        // For organzing our textures. This is useed from the GUI.
         this.textureFilePaths = { "no-texture": "no-texture-url" };
         this.loadedTextures = { "no-texture-url": new THREE.Texture() };
+
+        // Let's just initialize them once.
+        this.objLoader = new THREE.OBJLoader();
+        this.objExporter = new THREE.OBJExporter();
+        this.textureLoader = new THREE.TextureLoader();
 
     }
 
@@ -112,21 +113,20 @@ class GFXViewer {
 
     init_event_handlers() {
 
-        this.listen_handle_object_uploads();
-        this.listen_raycaster_for_selection();
-        this.listen_bounding_box_controls();
-        this.listen_transform_controls();
+        this.handle_window_resize();
+        this.handle_handle_object_uploads();
+        this.handle_raycaster_for_selection();
+        this.handle_bounding_box_controls();
+        this.handle_transform_controls();
 
     }
 
     /* Use ajax to read the obj file as plain text, and perform some manipulations on the object. */
-    listen_handle_object_uploads() {
+    handle_handle_object_uploads() {
 
         let self = this;
 
-        $('#i_file').change( onAdd3DObject );
-
-        function onAdd3DObject( event ) {
+        $( '#input-obj-file' ).change( function( event ) {
 
             let file = event.target.files[0];
             let filePath = window.URL.createObjectURL( file );
@@ -138,19 +138,18 @@ class GFXViewer {
                 mimeType: 'text/plain; charset=x-user-defined',
                 success: function( fileAsString ) {
 
-                    let loader = new THREE.OBJLoader();
-                    let object = loader.parse( OBJParser.triangulateConvex( fileAsString ) );
+                    let object = self.objLoader.parse( OBJParser.triangulate_convex( fileAsString ) );
                     object.name = file.name;
                     object.userData.filePath = filePath;
-                    object.userData.simpleMeshes = OBJParser.parseToSimpleMesh( fileAsString );
+                    object.userData.simpleMeshes = OBJParser.parse_to_simple_meshes( fileAsString );
 
                     OBJHandler.find_mesh_counts( object );
-                    OBJHandler.apply_default_materials( object );
+                    OBJHandler.apply_default_material( object );
                     OBJHandler.normalize_object( object );
                     OBJHandler.compute_face_and_vertex_normals( object );
-                    OBJHandler.draw_object_bounding_box( object );
-                    OBJHandler.draw_mesh_bounding_boxes( object );
-                    OBJHandler.recognize_meshes_for_raycaster( object, self.loadedMeshesInScene );
+                    OBJHandler.compute_object_bounding_box( object );
+                    OBJHandler.compute_constituent_bounding_boxes( object );
+                    OBJHandler.recognize_object_for_raycaster( object, self.loadedMeshesInScene );
 
                     // Hide previous selected bounding boxes before loading again.
                     self.show_bounding_boxes( false );
@@ -167,7 +166,7 @@ class GFXViewer {
                 }
             });
 
-        }
+        });
 
     }
 
@@ -193,7 +192,7 @@ class GFXViewer {
     }
 
     // Event listener
-    listen_raycaster_for_selection() {
+    handle_raycaster_for_selection() {
 
         let self = this;
 
@@ -261,7 +260,7 @@ class GFXViewer {
     /* Pressing and holding the shift key temporarily reassembles the constituent meshes of an object
      * back together at the object's center. Pressing G at this time will permanently glue it back together.
      * Alternatively, one can press B */
-    listen_bounding_box_controls() {
+    handle_bounding_box_controls() {
 
         let self = this;
         let shiftKeyUp = true; // jQuery doesn't support shift as a "keypress" event,
@@ -350,7 +349,7 @@ class GFXViewer {
 
     }
 
-    listen_transform_controls() {
+    handle_transform_controls() {
 
         let self = this;
 
@@ -358,7 +357,6 @@ class GFXViewer {
 
             switch ( event.keyCode ) {
                 case 48: // 0
-                    // What's the difference between local and world space?
                     self.transformControls.setSpace( self.transformControls.space === "local" ? "world" : "local" );
                     break;
                 case 49: // 1
@@ -370,7 +368,6 @@ class GFXViewer {
                 case 51: // 3
                     self.transformControls.setMode( "scale" );
                     break;
-
                 case 187: // =/+ key
                 case 107: // numpad +
                     self.transformControls.setSize( self.transformControls.size + 0.1 );
@@ -379,7 +376,6 @@ class GFXViewer {
                 case 109: // numpad -
                     self.transformControls.setSize( Math.max( self.transformControls.size - 0.1, 0.1 ) );
                     break;
-
                 case 17: // CTRL key
                     // Toggle snap-to-grid for the selectedObject.
                     if ( self.transformControls.translationSnap == null && self.transformControls.rotationSnap == null) {
@@ -390,17 +386,27 @@ class GFXViewer {
                         self.transformControls.setTranslationSnap( null );
                         self.transformControls.setRotationSnap( null );
                     }
-
+                    break;
                 case 72: // H
                     // Toggle visibility of selected object controls
                     self.transformControls.visible = (self.transformControls.visible ? false : true);
+                    break;
             }
 
         });
 
-
     }
 
+    // On resize of the window, resize the renderer and adjust camera accordingly.
+    handle_window_resize() {
+
+        $(window).resize( event => {
+            this.renderer.setSize( window.innerWidth,  window.innerHeight );
+            this.camera.aspect = window.innerWidth /  window.innerHeight;
+            this.camera.updateProjectionMatrix();
+        });
+
+    }
 
     animate() {
 
@@ -423,8 +429,26 @@ class GFXViewer {
     __update() {
 
         this.transformControls.update();
+        this.update_selection_text();
 
         // this.camera.orbitControls.update();
+
+    }
+
+    update_selection_text( mesh ) {
+
+        $( '#selected-obj' ).text( `Selected object: ${this.selectedObject.name}` );
+        $( '#obj-mesh-count' ).text( `Object mesh count: ${this.selectedObject.userData.meshCount}` );
+
+        $( '#selected-mesh' ).text( `Selected mesh group: ${this.selectedMesh.name}` );
+        $( '#threejs-vertices' ).text( `-> vertices: ${this.selectedMesh.userData.threejsVertices}` );
+        $( '#threejs-faces' ).text( `-> faces: ${this.selectedMesh.userData.threejsFaces}` );
+
+        $( '#he-vertices' ).text( `-> vertices: ${this.selectedMesh.userData.heVertices}` );
+        $( '#he-edges' ).text( `-> edges: ${this.selectedMesh.userData.heEdges}` );
+        $( '#he-faces' ).text( `-> faces: ${this.selectedMesh.userData.heFaces}` );
+        $( '#he-characteristic' ).text( `-> characteristic: ${this.selectedMesh.userData.heCharacteristic}` );
+        $( '#he-genus' ).text( `-> genus: ${this.selectedMesh.userData.heGenus}` );
 
     }
 
@@ -459,5 +483,3 @@ class GFXViewer {
     }
 
 }
-
-console.log("hello");
