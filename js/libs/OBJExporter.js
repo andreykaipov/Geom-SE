@@ -10,7 +10,7 @@ THREE.OBJExporter.prototype = {
 
 	parse: function ( object ) {
 
-		var output = '';
+		var output = [];
 
 		var indexVertex = 0;
 		var indexVertexUvs = 0;
@@ -25,8 +25,6 @@ THREE.OBJExporter.prototype = {
 		var parseMesh = function ( mesh ) {
 
 			var nbVertex = 0;
-			var nbNormals = 0;
-			var nbVertexUvs = 0;
 
 			var geometry = mesh.geometry;
 
@@ -42,18 +40,16 @@ THREE.OBJExporter.prototype = {
 
 				// shortcuts
 				var vertices = geometry.getAttribute( 'position' );
-				var normals = geometry.getAttribute( 'normal' );
-				var uvs = geometry.getAttribute( 'uv' );
 				var indices = geometry.getIndex();
 
 				// name of the mesh object
-				output += 'o ' + mesh.name + '\n';
+				output.push( 'o ' + mesh.name );
 
 				// vertices
 
 				if( vertices !== undefined ) {
 
-					for ( i = 0, l = vertices.count; i < l; i ++, nbVertex++ ) {
+					for ( i = 0, l = vertices.count; i < l; i++, nbVertex++ ) {
 
 						vertex.x = vertices.getX( i );
 						vertex.y = vertices.getY( i );
@@ -62,46 +58,11 @@ THREE.OBJExporter.prototype = {
 						// transfrom the vertex to world space
 						vertex.applyMatrix4( mesh.matrixWorld );
 
-						// transform the vertex to export format
-						output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
+						// transform the vertex to export format]
 
-					}
+                        let vertexLine = 'v' + ' ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z;
 
-				}
-
-				// uvs
-
-				if( uvs !== undefined ) {
-
-					for ( i = 0, l = uvs.count; i < l; i ++, nbVertexUvs++ ) {
-
-						uv.x = uvs.getX( i );
-						uv.y = uvs.getY( i );
-
-						// transform the uv to export format
-						output += 'vt ' + uv.x + ' ' + uv.y + '\n';
-
-					}
-
-				}
-
-				// normals
-
-				if( normals !== undefined ) {
-
-					normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
-
-					for ( i = 0, l = normals.count; i < l; i ++, nbNormals++ ) {
-
-						normal.x = normals.getX( i );
-						normal.y = normals.getY( i );
-						normal.z = normals.getZ( i );
-
-						// transfrom the normal to world space
-						normal.applyMatrix3( normalMatrixWorld );
-
-						// transform the normal to export format
-						output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
+                        output.push( vertexLine );
 
 					}
 
@@ -117,12 +78,12 @@ THREE.OBJExporter.prototype = {
 
 							j = indices.getX( i + m ) + 1;
 
-							face[ m ] = ( indexVertex + j ) + '/' + ( uvs ? ( indexVertexUvs + j ) : '' ) + '/' + ( indexNormals + j );
+							face[ m ] = ( indexVertex + j ) ;
 
 						}
 
 						// transform the face to export format
-						output += 'f ' + face.join( ' ' ) + "\n";
+						output.push( 'f ' + face.join( ' ' ) );
 
 					}
 
@@ -134,12 +95,12 @@ THREE.OBJExporter.prototype = {
 
 							j = i + m + 1;
 
-							face[ m ] = ( indexVertex + j ) + '/' + ( uvs ? ( indexVertexUvs + j ) : '' ) + '/' + ( indexNormals + j );
+							face[ m ] = ( indexVertex + j ) ;
 
 						}
 
 						// transform the face to export format
-						output += 'f ' + face.join( ' ' ) + "\n";
+						output.push( 'f ' + face.join( ' ' ) );
 
 					}
 
@@ -148,83 +109,6 @@ THREE.OBJExporter.prototype = {
 			} else {
 
 				console.warn( 'THREE.OBJExporter.parseMesh(): geometry type unsupported', geometry );
-
-			}
-
-			// update index
-			indexVertex += nbVertex;
-			indexVertexUvs += nbVertexUvs;
-			indexNormals += nbNormals;
-
-		};
-
-		var parseLine = function( line ) {
-
-			var nbVertex = 0;
-
-			var geometry = line.geometry;
-			var type = line.type;
-
-			if ( geometry instanceof THREE.Geometry ) {
-
-				geometry = new THREE.BufferGeometry().setFromObject( line );
-
-			}
-
-			if ( geometry instanceof THREE.BufferGeometry ) {
-
-				// shortcuts
-				var vertices = geometry.getAttribute( 'position' );
-				var indices = geometry.getIndex();
-
-				// name of the line object
-				output += 'o ' + line.name + '\n';
-
-				if( vertices !== undefined ) {
-
-					for ( i = 0, l = vertices.count; i < l; i ++, nbVertex++ ) {
-
-						vertex.x = vertices.getX( i );
-						vertex.y = vertices.getY( i );
-						vertex.z = vertices.getZ( i );
-
-						// transfrom the vertex to world space
-						vertex.applyMatrix4( line.matrixWorld );
-
-						// transform the vertex to export format
-						output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
-
-					}
-
-				}
-
-				if ( type === 'Line' ) {
-
-					output += 'l ';
-
-					for ( j = 1, l = vertices.count; j <= l; j++ ) {
-
-						output += ( indexVertex + j ) + ' ';
-
-					}
-
-					output += '\n';
-
-				}
-
-				if ( type === 'LineSegments' ) {
-
-					for ( j = 1, k = j + 1, l = vertices.count; j < l; j += 2, k = j + 1 ) {
-
-						output += 'l ' + ( indexVertex + j ) + ' ' + ( indexVertex + k ) + '\n';
-
-					}
-
-				}
-
-			} else {
-
-				console.warn('THREE.OBJExporter.parseLine(): geometry type unsupported', geometry );
 
 			}
 
@@ -241,15 +125,72 @@ THREE.OBJExporter.prototype = {
 
 			}
 
-			// if ( child instanceof THREE.Line ) {
-            //
-			// 	parseLine( child );
-            //
-			// }
-
 		} );
 
-		return output;
+
+        let dupLines = output;
+
+        let nodupLines = [];
+        let nodupVertices = [];
+
+        let duplicateVertexIndices = new Map();
+        let vertexCount = 0;
+        let goodVertexCount = 0;
+
+        let a = 0;
+
+        dupLines.forEach( function( line, dupLineIndex, lines ) {
+
+            if ( line[0] === 'v' ) {
+
+                vertexCount += 1;
+
+                let nodupVertexIndex = nodupVertices.indexOf( line );
+
+                if ( nodupVertexIndex < 0 ) { // line is not in nodupVertices
+
+                    nodupLines.push( line );
+                    nodupVertices.push( line );
+
+                    goodVertexCount += 1;
+                    duplicateVertexIndices.set( vertexCount, goodVertexCount );
+                }
+                else { // line is already in nodupVertices
+                    duplicateVertexIndices.set( vertexCount, nodupVertexIndex + 1 );
+                }
+
+            }
+            else if ( line[0] === 'f' ) {
+
+                let faceVertices = line.split(' ');
+
+                for ( let k = 1; k <= 3; k += 1 ) {
+
+                    let vertexIndex = parseInt( faceVertices[k], 10 );
+
+                    if ( duplicateVertexIndices.has( vertexIndex ) ) {
+
+                        faceVertices[k] = duplicateVertexIndices.get( vertexIndex );
+
+                    }
+
+                }
+
+                nodupLines.push( faceVertices.join(' ') );
+
+            }
+            else {
+                nodupLines.push( line );
+            }
+
+        });
+
+        console.log( duplicateVertexIndices );
+        console.log( vertexCount );
+        console.log( goodVertexCount );
+        let newOutput = nodupLines.join("\n");
+
+		return newOutput;
 
 	}
 
