@@ -7,7 +7,7 @@ class OBJParser {
     // If we could assume that the obj file contains planar faces, then we could find the plane
     // on which the concave face vertices lie on, and then implement a 2D triangulation alg by a
     // change of basis, but I think that's a bold assumption! Plus that sounds hard either way.
-    static triangulateConvex( fileAsString ) {
+    static triangulate_convex( fileAsString ) {
 
         let lines = fileAsString.split('\n');
 
@@ -44,7 +44,7 @@ class OBJParser {
     }
 
 
-    static parseToSimpleMesh( fileAsString ) {
+    static parse_to_simple_meshes( fileAsString ) {
 
         let lines = fileAsString.split('\n');
 
@@ -67,7 +67,7 @@ class OBJParser {
 
                 nonVertexLines.push( line );
 
-                if ( line[0] === 'g' && (line[1] === ' ' || line[1] === '\t') ) {
+                if ( (line[0] === 'g' || line[0] === 'o') && (line[1] === ' ' || line[1] === '\t') ) {
 
                     namedGroupedExists = true;
 
@@ -79,13 +79,13 @@ class OBJParser {
 
         if ( ! namedGroupedExists ) {
 
-            nonVertexLines.unshift("g NO GROUP NAME FOUND");
+            nonVertexLines.unshift("g no-name!");
 
         }
 
         nonVertexLines.forEach( line => {
 
-            if ( line[0] === 'g' && (line[1] === ' ' || line[1] === '\t') ) {
+            if ( (line[0] === 'g' || line[0] === 'o') && (line[1] === ' ' || line[1] === '\t') ) {
 
                 let mesh = {
                     name: line.substr( 1 ).trim(),
