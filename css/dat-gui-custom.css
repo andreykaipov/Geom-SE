@@ -1,0 +1,18 @@
+/* Make the gui text larger */
+.dg {
+    color: #fff;
+    font-family: monospace;
+    font-size: 13px;
+    text-shadow: none;
+}
+
+/* Make the gui transparent, and strenghten the border in between the buttons. */
+.dg li:not(.folder) {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid #aaa;
+}
+
+/* Make the close button transparent. */
+div.close-button {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}

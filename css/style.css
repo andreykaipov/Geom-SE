@@ -1,11 +1,16 @@
 body {
     margin: 0px;
     font-family: monospace;
+    font-size: 13px;
     color: white;
 }
 
 canvas {
     display: block;
+}
+
+.hide {
+    display: none;
 }
 
 .sidebar {
@@ -17,32 +22,4 @@ canvas {
 .sidebar ul {
     list-style: none;
     padding: 0;
-    font-family: sans-serif;
-}
-
-.sidebar hr {
-    display: none;
-    width: 80px;
-    margin-left: 0;
-}
-
-.sidebar a {
-    display: none;
-}
-
-/* Hide the button upload display. This is used from within the gui. */
-.hide {
-    display: none;
-}
-
-/*The following css makes the gui text larger*/
-.dg {
-    color: #fff;
-    font-size: 14px;
-    text-shadow: none !important;
-}
-
-.dg li:not(.folder) {
-    /*background: rgba(0, 0, 0, 1); !! transparency of gui makes the folders buggy when closed. */
-    border-bottom: 1px solid #ddd;
 }
