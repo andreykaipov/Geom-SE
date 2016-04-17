@@ -20,13 +20,12 @@ class GFXGUI {
     }
 
     create() {
+
         this.create_gui_scene_controls();
         this.create_gui_lighting_controls();
         this.create_gui_transform_controls();
         this.create_gui_material_controls();
-
-        this.create_upload_obj_file();
-        this.create_export_obj_file();
+        this.create_gui_actions_controls();
 
         // Make room for the function controllers with longer names.
         // Also move boolean controller's checkboxes to the right a bit.
@@ -76,6 +75,13 @@ class GFXGUI {
 
     }
 
+    create_gui_actions_controls() {
+
+        let controlFolder = this.gui.addFolder( "Actions" );
+        this.create_gui_actions( controlFolder );
+
+    }
+
     create_gui_scene( parentFolder ) {
 
         let folder = parentFolder;
@@ -120,7 +126,7 @@ class GFXGUI {
         let folder = parentFolder.addFolder( "Ambient" );
 
         let parameters = {
-            color: 0xffffff,
+            color: 0x000000,
          };
 
         // If the user enters a color by keyboard, the value becomes a string, and we need to convert.
@@ -464,14 +470,13 @@ class GFXGUI {
         folder.add({
             uploadTexture: function() {
 
-                $( '#upload_texture_file' ).change( function( event ) {
+                $( '#upload-texture-file' ).change( function( event ) {
 
                     let file = event.target.files[0];
                     let filePath = window.URL.createObjectURL( file );
                     gfxViewer.textureFilePaths[ file.name ] = filePath;
 
-                    let loader = new THREE.TextureLoader();
-                    let texture = loader.load( filePath , function( texture ) {
+                    let texture =gfxViewer.textureLoader.load( filePath , function( texture ) {
                         texture.name = file.name;
                         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                         texture.repeat.set(1,1);
@@ -501,7 +506,7 @@ class GFXGUI {
                 }
                 else {
                     let selectedTexture = gfxViewer.loadedTextures[ value ];
-                    OBJHandler.compute_mesh_uvs( gfxViewer.selectedMesh );
+                    MeshHandler.compute_mesh_uvs( gfxViewer.selectedMesh );
                     gfxViewer.selectedMesh.material.map = selectedTexture;
                     gfxViewer.selectedMesh.material.needsUpdate = true;
                 }
@@ -518,38 +523,58 @@ class GFXGUI {
 
     }
 
-    create_upload_obj_file() {
+    create_gui_actions( parentFolder ) {
 
-        this.gui.add({
-            uploadObj: function() {
-
-                document.getElementById("i_file").click();
-
-            }
-        }, 'uploadObj' ).name( "upload an obj file" );
-
-    }
-
-    create_export_obj_file() {
-
+        let folder = parentFolder;
         let self = this;
 
-        this.gui.add({
+        folder.add({
+            uploadObj: function() {
+
+                $( '#input-obj-file' ).click();
+
+            }
+        }, 'uploadObj' ).name( "upload a .obj file" );
+
+        folder.add({
+            computeInfo: function() {
+
+                MeshHandler.compute_he_info_for_mesh( gfxViewer.selectedMesh );
+
+            }
+        }, 'computeInfo').name( "compute .obj file info" );
+
+        folder.add({
             exportObj: function() {
 
-                let exporter = new THREE.OBJExporter();
-
-                let objAsString = exporter.parse( self.gfxViewer.selectedObject );
+                let objAsString = gfxViewer.objExporter.parse( self.gfxViewer.selectedObject );
                 let objAsFile = new Blob( [ objAsString ], { type: "text/plain" } );
                 let objFilePath = window.URL.createObjectURL( objAsFile );
 
-                let link = document.getElementById("o_file")
+                let link = $( '#output-obj-file' )[0];
                 link.href = objFilePath;
-                link.download = self.gfxViewer.selectedObject.name.slice(0,-4) + "_modified.obj";
-                link.click()
+                link.download = self.gfxViewer.selectedObject.name.slice(0,-4) + "-modified.obj";
+                link.click();
 
             }
-        }, 'exportObj' ).name( "export as obj" );
+
+        }, 'exportObj' ).name( "export selected object as .obj" );
+
+        folder.add({
+            exportMesh: function() {
+
+                let meshAsString = gfxViewer.objExporter.parse( self.gfxViewer.selectedMesh );
+                let meshAsFile = new Blob( [ meshAsString ], { type: "text/plain" } );
+                let meshFilePath = window.URL.createObjectURL( meshAsFile );
+
+                let link = $( '#output-obj-file' )[0];
+                link.href = meshFilePath;
+                link.download = self.gfxViewer.selectedMesh.name.slice(0,-4) + "-modified.obj";
+                link.click();
+
+            }
+        }, 'exportMesh' ).name( "export selected mesh as .obj" );
+
 
     }
 
@@ -581,38 +606,3 @@ class GFXGUI {
     }
 
 }
-
-
-
-/*
-function createGUI() {
-
-    var gui = new dat.GUI();
-    gui.domElement.id = "gui";
-
-    // console.log(gui);
-
-    createGuiScale( gui );
-    createGuiRotation( gui );
-    createGuiTranslation( gui );
-    createGuiMaterial( gui );
-    createUploadObjFile( gui );
-    createComputeInfo( gui );
-
-    // Start with a collpased GUI.
-    gui.close();
-
-}
-
-function createComputeInfo( gui ) {
-
-    gui.add({
-        computeInfo: function() {
-            computeInfoForMesh( selectedMesh );
-            showInfoForMesh( selectedMesh );
-        }
-    }, 'computeInfo').name( "compute.." );
-
-}
-
-*/
