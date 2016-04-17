@@ -5,7 +5,6 @@
   * ThreeJS objects and their constituent meshes.
   *
   * This class is primarily used when loading an object from an .obj file.
-  * Specifically, take a look at GFXViewer#listen_handle_object_uploads().
   *
   */
 
@@ -29,17 +28,14 @@ class OBJHandler {
 
     }
 
-    /* Assigns a random color to each mesh of an object, and use double sided faces. */
-    static apply_default_materials( object ) {
+    /* Applies the default material to each mesh of the object. See MeshHandler.js. */
+    static apply_default_material( object ) {
 
         object.children.forEach( function( child ) {
 
             if ( child instanceof THREE.Mesh ) {
 
-                child.material = new THREE.MeshPhongMaterial({
-                    color: 0xffffff * Math.random(),
-                    side: THREE.DoubleSide
-                });
+                MeshHandler.apply_default_material( child );
 
             }
 
@@ -105,7 +101,7 @@ class OBJHandler {
         let mergedCenter = object.userData.mergedGeometry.boundingBox.center();
         object.userData.mergedGeometry.translate( ...mergedCenter.clone().negate().toArray() );
 
-        // Step 1 done. Now to normalize each constituent geometry.
+        // Step 1 done. Now to normalize each constituent geometry w/ respect to the merged geometry.
         object.children.forEach( function( child ) {
 
             if ( child instanceof THREE.Mesh ) {
@@ -128,21 +124,14 @@ class OBJHandler {
 
     }
 
-    /* Computes the face and vertex normals of each constituent mesh of an object. */
+    /* Computes the face and vertex normals of each constituent mesh of an object. Also count them. */
     static compute_face_and_vertex_normals( object ) {
 
         object.children.forEach( function( child ) {
 
             if ( child instanceof THREE.Mesh ) {
 
-                // A BufferGeometry cannot compute face normals and merge vertices, so convert.
-                var geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
-
-                geometry.computeFaceNormals();
-                geometry.mergeVertices();
-                geometry.computeVertexNormals();
-
-                child.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
+                MeshHandler.compute_face_and_vertex_normals( child );
 
             }
 
@@ -150,8 +139,8 @@ class OBJHandler {
 
     }
 
-    /* Draws a bounding box for an object by using its merged geometry. */
-    static draw_object_bounding_box( object ) {
+    /* Computes the bounding box for an object by using its merged geometry. */
+    static compute_object_bounding_box( object ) {
 
         var boundingBox = new THREE.BoxHelper( new THREE.Mesh( object.userData.mergedGeometry, null ) );
 
@@ -161,20 +150,14 @@ class OBJHandler {
 
     }
 
-    /* Draws a bounding box for each constituent mesh of an object. */
-    static draw_mesh_bounding_boxes( object ) {
+    /* Computes the bounding box for each constituent mesh of an object. */
+    static compute_constituent_bounding_boxes( object ) {
 
         object.children.forEach( function( child ) {
 
             if ( child instanceof THREE.Mesh ) {
 
-                child.userData.boundingBox = new THREE.BoxHelper( child );
-
-                child.userData.boundingBox.visible = false;
-
-                child.add( child.userData.boundingBox );
-
-                child.userData.boundingBox.geometry.center();
+                MeshHandler.compute_mesh_bounding_box( child );
 
             }
 
@@ -184,13 +167,13 @@ class OBJHandler {
 
     /* Adds the constituent meshes of an object into an array.
      * It's purpose is so our raycaster can select meshes from this array. */
-    static recognize_meshes_for_raycaster( object, loadedMeshes ) {
+    static recognize_object_for_raycaster( object, loadedMeshes ) {
 
         object.children.forEach( function( child ) {
 
             if ( child instanceof THREE.Mesh ) {
 
-                loadedMeshes.push( child );
+                MeshHandler.recognize_mesh_for_raycaster( child, loadedMeshes );
 
             }
 
@@ -230,44 +213,7 @@ class OBJHandler {
         object.userData.mergedGeometry.translate( ...offset.toArray() );
 
         object.remove( object.userData.boundingBox );
-        this.draw_object_bounding_box( object );
-
-    }
-
-    // Putting this method in here for now.
-    // Also see http://stackoverflow.com/questions/20774648/three-js-generate-uv-coordinate
-    static compute_mesh_uvs( mesh ) {
-
-        let geometry = new THREE.Geometry().fromBufferGeometry( mesh.geometry );
-
-        geometry.computeBoundingBox();
-
-        var max     = geometry.boundingBox.max;
-        var min     = geometry.boundingBox.min;
-
-        var offset  = new THREE.Vector2(0 - min.x, 0 - min.y);
-        var range   = new THREE.Vector2(max.x - min.x, max.y - min.y);
-
-        geometry.faceVertexUvs[0] = [];
-        var faces = geometry.faces;
-
-        for ( let i = 0; i < geometry.faces.length ; i++ ) {
-
-            var v1 = geometry.vertices[faces[i].a];
-            var v2 = geometry.vertices[faces[i].b];
-            var v3 = geometry.vertices[faces[i].c];
-
-            geometry.faceVertexUvs[0].push([
-                new THREE.Vector2( ( v1.x + offset.x ) / range.x , ( v1.y + offset.y ) / range.y ),
-                new THREE.Vector2( ( v2.x + offset.x ) / range.x , ( v2.y + offset.y ) / range.y ),
-                new THREE.Vector2( ( v3.x + offset.x ) / range.x , ( v3.y + offset.y ) / range.y )
-            ]);
-
-        }
-
-        geometry.uvsNeedUpdate = true;
-
-        mesh.geometry = new THREE.BufferGeometry().fromGeometry( geometry );
+        this.compute_object_bounding_box( object );
 
     }
 
