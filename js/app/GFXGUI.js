@@ -506,7 +506,7 @@ class GFXGUI {
                 }
                 else {
                     let selectedTexture = gfxViewer.loadedTextures[ value ];
-                    MeshHandler.compute_mesh_uvs( gfxViewer.selectedMesh );
+                    MeshHandler.assign_default_mesh_uvs( gfxViewer.selectedMesh );
                     gfxViewer.selectedMesh.material.map = selectedTexture;
                     gfxViewer.selectedMesh.material.needsUpdate = true;
                 }
