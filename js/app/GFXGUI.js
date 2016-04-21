@@ -569,12 +569,11 @@ class GFXGUI {
 
                 let link = $( '#output-obj-file' )[0];
                 link.href = meshFilePath;
-                link.download = self.gfxViewer.selectedMesh.name.slice(0,-4) + "-modified.obj";
+                link.download = self.gfxViewer.selectedMesh.name + "-modified.obj";
                 link.click();
 
             }
         }, 'exportMesh' ).name( "export selected mesh as .obj" );
-
 
     }
 
