@@ -11,6 +11,23 @@
     <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
+    <script>
+        function good() {
+            try {
+                eval("class Test {}");
+                eval("[1,2,3].map(x => x + 1)");
+            }
+            catch (e) {
+                return false;
+            }
+            return true;
+        }
+        if ( ! good() ) {
+            alert("Woah! This page doesn't support your current browser. \nPlease update it!\n\n"  +
+                  "Known supported browsers (minimum versions):\nChrome 42, Firefox 45, Edge 21, or Safari 9.");
+        }
+    </script>
+
     <div class="hide">
         <input id="input-obj-file" type="file" accept=".obj">
         <a id="output-obj-file" href="" download></a>
