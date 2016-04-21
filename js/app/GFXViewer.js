@@ -113,59 +113,58 @@ class GFXViewer {
 
     init_event_handlers() {
 
+        this.handle_window_onload();
         this.handle_window_resize();
-        this.handle_handle_object_uploads();
+        this.handle_object_uploads();
         this.handle_raycaster_for_selection();
         this.handle_bounding_box_controls();
         this.handle_transform_controls();
 
     }
 
-    /* Use ajax to read the obj file as plain text, and perform some manipulations on the object. */
-    handle_handle_object_uploads() {
+    /* Reads an object from its file path, calculates some info, and adds it into the scene. */
+    add_obj_file( filePath, fileName ) {
+
+        // If a file name is not provided, recover it from the URL.
+        if ( fileName === undefined ) {
+            fileName = filePath.split('\\').pop().split('/').pop();
+        }
 
         let self = this;
 
-        $( '#input-obj-file' ).change( function( event ) {
+        $.ajax({
+            url: filePath,
+            contents: { obj: /obj/ },
+            contentType: 'text/plain',
+            mimeType: 'text/plain; charset=x-user-defined',
+            success: function( fileAsString ) {
 
-            let file = event.target.files[0];
-            let filePath = window.URL.createObjectURL( file );
+                let object = self.objLoader.parse( OBJParser.triangulate_convex( fileAsString ) );
+                object.name = fileName;
+                object.userData.filePath = filePath;
+                object.userData.simpleMeshes = OBJParser.parse_to_simple_meshes( fileAsString );
 
-            $.ajax({
-                url: filePath,
-                contents: { obj: /obj/ },
-                contentType: 'text/plain',
-                mimeType: 'text/plain; charset=x-user-defined',
-                success: function( fileAsString ) {
+                OBJHandler.find_mesh_counts( object );
+                OBJHandler.apply_default_material( object );
+                OBJHandler.normalize_object( object );
+                OBJHandler.compute_face_and_vertex_normals( object );
+                OBJHandler.compute_object_bounding_box( object );
+                OBJHandler.compute_constituent_bounding_boxes( object );
+                OBJHandler.recognize_object_for_raycaster( object, self.loadedMeshesInScene );
 
-                    let object = self.objLoader.parse( OBJParser.triangulate_convex( fileAsString ) );
-                    object.name = file.name;
-                    object.userData.filePath = filePath;
-                    object.userData.simpleMeshes = OBJParser.parse_to_simple_meshes( fileAsString );
+                // Hide previous selected bounding boxes before loading again.
+                self.show_bounding_boxes( false );
 
-                    OBJHandler.find_mesh_counts( object );
-                    OBJHandler.apply_default_material( object );
-                    OBJHandler.normalize_object( object );
-                    OBJHandler.compute_face_and_vertex_normals( object );
-                    OBJHandler.compute_object_bounding_box( object );
-                    OBJHandler.compute_constituent_bounding_boxes( object );
-                    OBJHandler.recognize_object_for_raycaster( object, self.loadedMeshesInScene );
+                self.selectedObject = object;
+                self.selectedMesh = object.children[ 0 ];
+                self.transformControls.attach( object );
 
-                    // Hide previous selected bounding boxes before loading again.
-                    self.show_bounding_boxes( false );
+                self.scene.add( object );
 
-                    self.selectedObject = object;
-                    self.selectedMesh = object.children[ 0 ];
-                    self.transformControls.attach( object );
-
-                    self.scene.add( object );
-
-                    console.log("File was read and loaded into scene successfully." +
-                                "\nName: " + file.name +
-                                "\nSize: " + file.size + " bytes" );
-                }
-            });
-
+                console.log( `File was read and loaded into scene successfully.
+                              Name: ${fileName}
+                              Path: ${filePath}` );
+            }
         });
 
     }
@@ -191,7 +190,40 @@ class GFXViewer {
 
     }
 
-    // Event listener
+    /* If there is a hash in the url, treat is as the url to an .obj file, and load it on page load. */
+    handle_window_onload() {
+
+        let self = this;
+
+        let hash = window.location.hash;
+
+        if ( hash ) {
+
+            let fileURL = hash.slice( 1 );
+
+            window.onload = self.add_obj_file( fileURL );
+
+        }
+
+    }
+
+    /* Handles upload of local .obj files. */
+    handle_object_uploads() {
+
+        let self = this;
+
+        $( '#input-obj-file' ).change( function( event ) {
+
+            let file = event.target.files[0];
+            let filePath = window.URL.createObjectURL( file );
+
+            self.add_obj_file( filePath, file.name );
+
+        });
+
+    }
+
+    // Handles selection of any meshes currently in the scene.
     handle_raycaster_for_selection() {
 
         let self = this;
