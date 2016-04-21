@@ -1,3 +1,11 @@
+/**
+  * @author Andrey Kaipov / https://github.com/andreykaipov
+  *
+  * This class is a static class meant for handling and manipulating THREE.Meshes.
+  * It is primarily used to help the OBJHandler, but is used in the GFXGUI too.
+  */
+
+"use strict";
 
 class MeshHandler {
 
@@ -33,9 +41,7 @@ class MeshHandler {
     static compute_mesh_bounding_box( mesh ) {
 
         mesh.userData.boundingBox = new THREE.BoxHelper( mesh );
-
         mesh.userData.boundingBox.visible = false;
-
         mesh.userData.boundingBox.geometry.center();
 
         mesh.add( mesh.userData.boundingBox );

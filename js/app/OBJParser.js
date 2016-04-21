@@ -1,12 +1,19 @@
+/**
+  * @author Andrey Kaipov / https://github.com/andreykaipov
+  *
+  * This class is a static class meant for manipulating raw .obj files.
+  * It's really just more housekeeping. See GFXViewer#add_obj_file for its uses.
+  */
+
 "use strict";
 
 class OBJParser {
 
-    // Triangulates faces as if they were convex polygons because I can't think of a way
-    // to implement a sophisticated polygon triangulation algorithm in 3D.
-    // If we could assume that the obj file contains planar faces, then we could find the plane
-    // on which the concave face vertices lie on, and then implement a 2D triangulation alg by a
-    // change of basis, but I think that's a bold assumption! Plus that sounds hard either way.
+    /* Triangulates faces as if they were convex polygons because I can't think of a way
+     * to implement a sophisticated polygon triangulation algorithm in 3D.
+     * If we could assume that the obj file contains planar faces, then we could find the plane
+     * on which the concave face vertices lie on, and then implement a 2D triangulation alg by a
+     * change of basis, but I think that's a bold assumption! Plus that sounds hard either way. */
     static triangulate_convex( fileAsString ) {
 
         let lines = fileAsString.split('\n');
@@ -43,7 +50,8 @@ class OBJParser {
 
     }
 
-
+    /* Given an .obj file as text, we parse its groups into an array of simple meshes.
+     * A simple mesh is just a list of vertices and a list of faces on those vertices. */
     static parse_to_simple_meshes( fileAsString ) {
 
         let lines = fileAsString.split('\n');

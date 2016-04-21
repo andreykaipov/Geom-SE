@@ -1,9 +1,10 @@
 /**
-  * @author Andrey Kaipov
+  * @author Andrey Kaipov / https://github.com/andreykaipov
+  *
+  * This class is for the logic behind the GUI component of the application.
+  * We are using dat.gui, so the pattern of creating each controller is
+  * pretty identical, with some tricks here and there thrown in!
   */
-
-// See the source for this. It's really innovative and helped a lot.
-// http://threejs.org/docs/scenes/material-browser.html#MeshPhongMaterial
 
 "use strict";
 
@@ -14,8 +15,6 @@ class GFXGUI {
         this.gui = new dat.GUI();
 
         this.gfxViewer = gfxViewer;
-        this.selectedMesh = gfxViewer.selectedMesh;
-        this.selectedObject = gfxViewer.selectedObject;
 
     }
 

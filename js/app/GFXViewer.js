@@ -1,3 +1,10 @@
+/**
+  * @author Andrey Kaipov / https://github.com/andreykaipov
+  *
+  * This class is for the logic behind the graphics component of the application.
+  * It creates a nice foundation to easily implement interaction via the GFXGUI.
+  */
+
 "use strict";
 
 class GFXViewer {
@@ -38,12 +45,12 @@ class GFXViewer {
         this.selectedObject.name = "undefined";
 
         // Add xyz axes and keep a reference to it.
-        this.axes = this.__makeAxes( 5 );
+        this.axes = this.makeAxes( 5 );
         this.scene.add( this.axes );
 
         // For control of selected mesh and object.
         this.transformControls = new THREE.TransformControls( this.camera, this.renderer.domElement );
-        this.transformControls.addEventListener( 'change', this.__render.bind( this ) );
+        this.transformControls.addEventListener( 'change', this.render.bind( this ) );
         this.transformControls.setSize( 0.6 );
         this.transformControls.visible = false;
         this.scene.add( this.transformControls );
@@ -71,9 +78,10 @@ class GFXViewer {
 
     }
 
+    /* Get some initial lights into the scene. */
     init_lights() {
 
-        // Add ambient light.
+        // Add the ambient light. But remember - it's black ambient light by default!
         this.scene.add( this.lights.ambient );
 
         // Initialize our directional light, and attach some controls to it.
@@ -111,6 +119,7 @@ class GFXViewer {
 
     }
 
+    /* Just initializes the below event handlers. */
     init_event_handlers() {
 
         this.handle_window_onload();
@@ -118,7 +127,7 @@ class GFXViewer {
         this.handle_object_uploads();
         this.handle_raycaster_for_selection();
         this.handle_bounding_box_controls();
-        this.handle_transform_controls();
+        this.handle_keyboard_transform_controls();
 
     }
 
@@ -207,7 +216,7 @@ class GFXViewer {
 
     }
 
-    /* Handles upload of local .obj files. */
+    /* Promps the upload of a local .obj files. */
     handle_object_uploads() {
 
         let self = this;
@@ -223,7 +232,7 @@ class GFXViewer {
 
     }
 
-    // Handles selection of any meshes currently in the scene.
+    /* Selects a mesh via a raycaster. */
     handle_raycaster_for_selection() {
 
         let self = this;
@@ -237,12 +246,7 @@ class GFXViewer {
 
             let intersected = self.raycaster.intersectObjects( self.loadedMeshesInScene );
 
-            if ( intersected.length == 0 ) {
-
-                // self.selectedMeshes.length = 0;
-
-            }
-            else if ( intersected.length > 0 ) {
+            if ( intersected.length > 0 ) {
 
                 self.transformControls.setSpace( "local" );
 
@@ -268,14 +272,6 @@ class GFXViewer {
                 self.transformControls.attach( self.selectedMesh );
 
                 // If double clicked, then focus in on the selected mesh for that cool effect.
-                if ( event.ctrlKey ) {
-
-                    self.selectedMesh.material.color.setHex( 0x999900 );
-                    // self.selectedMeshes.add( self.selectedMesh );
-                    // self.transformControls.attach( self.selectedMeshes );
-                    // self.transformControls.update();
-
-                }
                 if ( event.type === "dblclick" ) {
 
                     self.camera.lookAt( self.selectedMesh.position );
@@ -381,7 +377,8 @@ class GFXViewer {
 
     }
 
-    handle_transform_controls() {
+    /* Keyboard controls for the transforms controls. */
+    handle_keyboard_transform_controls() {
 
         let self = this;
 
@@ -443,27 +440,26 @@ class GFXViewer {
     animate() {
 
         let self = this;
+
         setTimeout( function() {
             requestAnimationFrame( self.animate.bind( self ) );
         }, 1000 / self.renderFPS );
 
-        this.__render();
-        this.__update();
+        this.render();
+        this.update();
 
     }
 
-    __render() {
+    render() {
 
         this.renderer.render( this.scene, this.camera );
 
     }
 
-    __update() {
+    update() {
 
         this.transformControls.update();
         this.update_selection_text();
-
-        // this.camera.orbitControls.update();
 
     }
 
@@ -484,7 +480,7 @@ class GFXViewer {
 
     }
 
-    __makeAxes( length ) {
+    makeAxes( length ) {
 
     	var vertices = new Float32Array( [
     		0, 0, 0,  length, 0, 0,  // +x

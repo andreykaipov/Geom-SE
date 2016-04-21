@@ -1,12 +1,11 @@
 /**
-  * @author Andrey Kaipov (https://github.com/andreykaipov)
+  * @author Andrey Kaipov / https://github.com/andreykaipov
   *
-  * This class is a static class and meant for handling and manipulating
-  * ThreeJS objects and their constituent meshes.
-  *
-  * This class is primarily used when loading an object from an .obj file.
-  *
+  * This class is a static class meant for handling and manipulating THREE.Groups,
+  * along with their constituent meshes. See MeshHandler and GFXViewer#add_obj_file.
   */
+
+"use strict";
 
 class OBJHandler {
 

@@ -1,3 +1,7 @@
+/**
+  * @author Andrey Kaipov / https://github.com/andreykaipov
+  */
+
 "use strict";
 
 class HalfEdgeHash extends Map {

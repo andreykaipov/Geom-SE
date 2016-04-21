@@ -1,6 +1,11 @@
+/**
+  * @author Andrey Kaipov / https://github.com/andreykaipov
+  */
+
 "use strict";
 
 class HalfEdge {
+    
     constructor( endVertex, adjFace, oppHalfEdge, nextHalfEdge ) {
         this.endVertex = endVertex;
         this.adjFace = adjFace;
