@@ -204,8 +204,10 @@ class HalfEdgeMesh {
     }
 
     // Gets an array of boundary components of this mesh.
-    // A boundary component is an array of boundary vertices that are all mutually adjacent.
-    // This algorithm scales poorly for obj files with many boundaries!
+    // A boundary component is an array of boundary vertices that are all mutually connected.
+    // What we do is a modified DFS on an initial boundary vertex, discovering only those vertices that
+    // are adjacent to another boundary vertex. Once there are no more of these discoveries, we pick a
+    // new boundary vertex until all of the boundary vertices have been put into a boundary component.
     get boundaries() {
 
         let boundaryComponents = [];
