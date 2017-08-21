@@ -91,6 +91,8 @@
 
     <!-- Initialize. -->
     <script>
+        window.location.hash = window.location.hash || "#objs/eight.obj";
+
         let gfxViewer = new GFXViewer();
         gfxViewer.init_lights();
         gfxViewer.animate();
